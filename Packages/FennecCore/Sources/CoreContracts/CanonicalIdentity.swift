@@ -18,6 +18,16 @@ public struct FeedKey: RawRepresentable, Codable, Hashable, Sendable {
     let normalizedURL = try CanonicalURL.normalize(canonicalURL)
     self.init(rawValue: StableHash.sha256("feed:v1:\(normalizedURL)"))
   }
+
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    self.init(rawValue: try container.decode(String.self))
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    try container.encode(rawValue)
+  }
 }
 
 public struct EpisodeKey: RawRepresentable, Codable, Hashable, Sendable {
@@ -34,6 +44,16 @@ public struct EpisodeKey: RawRepresentable, Codable, Hashable, Sendable {
         "episode:v1:\(input.feedKey.rawValue):\(locator)"
       )
     )
+  }
+
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    self.init(rawValue: try container.decode(String.self))
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    try container.encode(rawValue)
   }
 }
 
