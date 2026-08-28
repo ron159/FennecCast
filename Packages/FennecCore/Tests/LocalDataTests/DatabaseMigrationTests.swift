@@ -35,6 +35,7 @@ struct DatabaseMigrationTests {
         "episodes_feed_date",
         "episodes_publication_date",
         "feeds_subscription_title",
+        "media_local_state",
         "queue_present_order",
       ]
     )

@@ -21,6 +21,9 @@ public enum LocalDataError: Error, Equatable, Sendable {
   case invalidQueryLimit
   case negativeTimestamp
   case localSequenceOverflow
+  case invalidDownloadTransition(from: DownloadState, to: DownloadState)
+  case invalidDownloadMetadata
+  case invalidLocalMediaPath
 }
 
 public struct SyncCursorState: Equatable, Sendable {

@@ -30,6 +30,21 @@ enum DatabaseSchema {
         sql: "CREATE INDEX episode_state_archived ON episode_state(archived, episode_key)"
       )
     }
+    migrator.registerMigration("v3.downloadRecovery") { db in
+      try db.execute(sql: "ALTER TABLE media_local ADD COLUMN resume_data BLOB")
+      try db.execute(
+        sql: """
+          ALTER TABLE media_local ADD COLUMN downloaded_bytes INTEGER NOT NULL DEFAULT 0
+            CHECK (downloaded_bytes >= 0)
+          """
+      )
+      try db.execute(
+        sql: """
+          CREATE INDEX media_local_state
+          ON media_local(download_state, updated_at_ms DESC, episode_key)
+          """
+      )
+    }
     return migrator
   }
 
