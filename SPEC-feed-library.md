@@ -1,6 +1,6 @@
 # Specification: feed-library
 
-**Status:** Approved by the user's standing authorization to continue without repeated confirmation  
+**Status:** Complete  
 **Sources:** FennecCast whitepaper v1.1, Apple Foundation documentation, RSS 2.0 specification and RFC 4287
 
 ## 1. Purpose
@@ -54,3 +54,12 @@ Provide local-first podcast subscription, refresh and library behavior for RSS 2
 - Fetch tests prove conditional headers, redirect aliases, `304`, status and size handling.
 - Full Swift package tests, strict formatting, generic iOS build and build-for-testing pass.
 
+## 7. Verification Evidence
+
+Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
+
+- Feed parser, HTTP and workflow suites: 9 tests passed.
+- Full `FennecCore` package: 70 tests passed.
+- Strict Swift format lint passed for the application and package sources/tests.
+- Generic iOS Simulator build and `build-for-testing` passed with `FeedLibrary` linked to the app.
+- Runtime XCTest execution remains unavailable because this Mac has no installed Simulator Runtime.

@@ -11,7 +11,29 @@ final class AppFoundationTests: XCTestCase {
     XCTAssertEqual(environment.appName, "FennecCast")
     XCTAssertEqual(environment.stateSyncProtocolVersion, 1)
     XCTAssertNil(environment.localDataStore)
+    XCTAssertNil(environment.feedLibraryService)
+    XCTAssertNil(environment.queueService)
     XCTAssertNil(environment.startupFailure)
+  }
+
+  func testLiveEnvironmentProvidesLibraryAndQueueServices() throws {
+    let applicationSupport = FileManager.default.temporaryDirectory
+      .appendingPathComponent("FennecCast-AppEnvironment-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: applicationSupport) }
+
+    let environment = AppEnvironment.live(
+      applicationSupportDirectory: applicationSupport
+    )
+
+    XCTAssertNil(environment.startupFailure)
+    XCTAssertNotNil(environment.localDataStore)
+    XCTAssertNotNil(environment.feedLibraryService)
+    XCTAssertNotNil(environment.queueService)
+    XCTAssertTrue(
+      FileManager.default.fileExists(
+        atPath: AppEnvironment.databaseURL(in: applicationSupport).path
+      )
+    )
   }
 
   func testDatabaseUsesAnApplicationSupportSubdirectory() {

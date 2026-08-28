@@ -1,6 +1,6 @@
 # Specification: queue
 
-**Status:** Approved by the user's standing authorization to continue without repeated confirmation  
+**Status:** Complete  
 **Sources:** FennecCast whitepaper v1.1 and approved CoreContracts conflict/order rules
 
 ## 1. Purpose
@@ -31,3 +31,12 @@ Provide a persistent, local-first playback queue whose add, remove and move oper
 - Local sequence and pending Outbox order remain monotonic.
 - Full Swift package tests, strict formatting, generic iOS build and build-for-testing pass.
 
+## 5. Verification Evidence
+
+Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
+
+- Queue operation and forced-rollback suite: 5 tests passed.
+- Full `FennecCore` package: 70 tests passed.
+- Strict Swift format lint passed for the application and package sources/tests.
+- Generic iOS Simulator build and `build-for-testing` passed with `QueueFeature` linked to the app.
+- Runtime XCTest execution remains unavailable because this Mac has no installed Simulator Runtime.

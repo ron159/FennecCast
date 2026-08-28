@@ -17,7 +17,7 @@ Build the RSS/Atom parser and library persistence first, add bounded conditional
 - [x] Task 2: Add feed/episode metadata transactions and library queries from failing database tests
 - [x] Task 3: Add bounded conditional HTTP refresh and subscription workflows from stubbed fetch tests
 - [x] Task 4: Add atomic batch mutations and queue repository from failing operation/rebase tests
-- [ ] Task 5: Link services into the app and complete both-module verification
+- [x] Task 5: Link services into the app and complete both-module verification
 
 ## Checkpoints
 
@@ -25,8 +25,8 @@ Build the RSS/Atom parser and library persistence first, add bounded conditional
 - [x] Feed parse/fetch failures leave the database unchanged.
 - [x] Queue rebase and its Outbox operations are atomic.
 - [x] Full package tests and format lint pass for the package implementation.
-- [ ] Generic iOS build and build-for-testing pass.
-- [ ] Adjacent Android checkout remains unchanged.
+- [x] Generic iOS build and build-for-testing pass.
+- [x] Adjacent Android checkout remains unchanged.
 
 ## Risks and Mitigations
 

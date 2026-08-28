@@ -15,6 +15,8 @@
 		A10000000000000000000006 /* AppFoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* AppFoundationTests.swift */; };
 		A10000000000000000000007 /* CoreContracts in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000002 /* CoreContracts */; };
 		A10000000000000000000008 /* LocalData in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000003 /* LocalData */; };
+		A10000000000000000000009 /* FeedLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000004 /* FeedLibrary */; };
+		A1000000000000000000000A /* QueueFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000005 /* QueueFeature */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +47,8 @@
 			files = (
 				A10000000000000000000007 /* CoreContracts in Frameworks */,
 				A10000000000000000000008 /* LocalData in Frameworks */,
+				A10000000000000000000009 /* FeedLibrary in Frameworks */,
+				A1000000000000000000000A /* QueueFeature in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -131,6 +135,8 @@
 			packageProductDependencies = (
 				AA0000000000000000000002 /* CoreContracts */,
 				AA0000000000000000000003 /* LocalData */,
+				AA0000000000000000000004 /* FeedLibrary */,
+				AA0000000000000000000005 /* QueueFeature */,
 			);
 			productName = FennecCast;
 			productReference = A20000000000000000000004 /* FennecCast.app */;
@@ -261,6 +267,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
 			productName = LocalData;
+		};
+		AA0000000000000000000004 /* FeedLibrary */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
+			productName = FeedLibrary;
+		};
+		AA0000000000000000000005 /* QueueFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
+			productName = QueueFeature;
 		};
 /* End XCSwiftPackageProductDependency section */
 

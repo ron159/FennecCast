@@ -30,7 +30,7 @@
 
 ## Task 5: Integration and closeout
 
-- [ ] Link `FeedLibrary` and queue services to the app environment.
-- [ ] Run all package tests and strict format lint.
-- [ ] Run generic iOS build and build-for-testing.
-- [ ] Run diff, secret and adjacent-checkout audits; record evidence.
+- [x] Link `FeedLibrary` and queue services to the app environment.
+- [x] Run all package tests and strict format lint.
+- [x] Run generic iOS build and build-for-testing.
+- [x] Run diff, secret and adjacent-checkout audits; record evidence.
