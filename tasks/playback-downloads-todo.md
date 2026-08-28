@@ -1,0 +1,29 @@
+# Task List: playback and downloads
+
+## Playback policies and persistence
+
+- [x] Add deterministic rate, completion, sleep and chapter fixtures; observe RED.
+- [ ] Add playback snapshot and command models.
+- [x] Add local playback writer/query helpers without bypassing Outbox.
+
+## Playback engine and native adapter
+
+- [ ] Add driver-backed engine tests; observe RED.
+- [ ] Implement load/resume, play/pause, seek/skip/rate and periodic checkpoints.
+- [ ] Implement completion, queue advance and sleep timers.
+- [ ] Implement AVPlayer/audio-session adapter and stale-event isolation.
+- [ ] Implement Now Playing and remote-command integration.
+
+## Download persistence and service
+
+- [ ] Add v3 media-local migration and repository tests; observe RED.
+- [ ] Implement typed local download states and queries.
+- [ ] Add transport-backed service tests; observe RED.
+- [ ] Implement start/progress/suspend/resume/retry/cancel/remove/reconcile.
+
+## Background transport and closeout
+
+- [ ] Implement fixed-identifier background URLSession and delegate file handling.
+- [ ] Add UIApplicationDelegate completion-handler bridge.
+- [ ] Link playback/download services to AppEnvironment.
+- [ ] Run package, format, iOS build, Info.plist, build-for-testing and audit gates.
