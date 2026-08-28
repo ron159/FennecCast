@@ -11,6 +11,10 @@ public enum LocalDataError: Error, Equatable, Sendable {
   case cursorRegression(current: Int64, proposed: Int64)
   case staleServerChange(sequence: Int64, currentCursor: Int64)
   case serverChangeOutsideCursor(sequence: Int64, nextCursor: Int64)
+  case emptyAliasKey
+  case aliasKindMismatch
+  case aliasConflict(existing: String, requested: String)
+  case aliasCycle
   case negativeTimestamp
   case localSequenceOverflow
 }
