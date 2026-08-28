@@ -82,3 +82,14 @@ Define the deterministic, storage-independent contracts shared by FennecCast's l
 ## 7. Compatibility Boundary
 
 This module establishes protocol version 1 behavior. Any later change to canonical identity input, entity whitelist, wire keys, intent precedence or token format requires a new protocol decision and migration rather than an in-place semantic change.
+
+## 8. Verification Evidence
+
+Verified on 2026-08-28 with Xcode 27 beta and Swift 6.4:
+
+- `xcrun swift test --package-path Packages/FennecCore`: 35 tests in 5 suites passed.
+- `xcrun swift-format lint --strict --recursive Packages/FennecCore/Sources Packages/FennecCore/Tests`: passed.
+- Generic iOS Simulator `build`: passed for arm64 and x86_64 with the local `CoreContracts` product in the target dependency graph.
+- Generic iOS Simulator `build-for-testing`: App and XCTest targets compiled successfully; runtime execution remains unavailable because this Mac has no installed Simulator Runtime.
+- Golden JSON matches the v1 Envelope names and keeps `entity_key` at Envelope level rather than duplicating it in payload.
+- Focused secret scan, `git diff --check` and adjacent Android checkout audit passed.

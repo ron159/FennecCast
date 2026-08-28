@@ -23,20 +23,20 @@ fractional index ───┘
 
 ## Task List
 
-- [ ] Task 1: Scaffold the local package and implement canonical identity from failing tests
-- [ ] Task 2: Implement HLC and version ordering from failing tests
-- [ ] Task 3: Implement fractional queue tokens from failing tests
-- [ ] Task 4: Implement StateSync v1 models and golden JSON coding from failing tests
-- [ ] Task 5: Implement subscription, playback and queue conflict resolution from failing tests
-- [ ] Task 6: Link `CoreContracts` into the iOS target and close verification
+- [x] Task 1: Scaffold the local package and implement canonical identity from failing tests
+- [x] Task 2: Implement HLC and version ordering from failing tests
+- [x] Task 3: Implement fractional queue tokens from failing tests
+- [x] Task 4: Implement StateSync v1 models and golden JSON coding from failing tests
+- [x] Task 5: Implement subscription, playback and queue conflict resolution from failing tests
+- [x] Task 6: Link `CoreContracts` into the iOS target and close verification
 
 ## Checkpoints
 
-- [ ] Each behavior slice has observed RED then passing focused tests.
-- [ ] Full package tests and format lint pass.
-- [ ] Generic iOS Simulator build succeeds with the package linked.
-- [ ] Changes remain inside `FennecCast/`; the adjacent Android checkout is unchanged.
-- [ ] Commits are small, descriptive and independently revertible.
+- [x] Each behavior slice has observed RED then passing focused tests.
+- [x] Full package tests and format lint pass.
+- [x] Generic iOS Simulator build succeeds with the package linked.
+- [x] Changes remain inside `FennecCast/`; the adjacent Android checkout is unchanged.
+- [x] Commits are small, descriptive and independently revertible.
 
 ## Risks and Mitigations
 
