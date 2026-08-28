@@ -105,15 +105,27 @@ final class AppEnvironment {
 
 ## Success Criteria
 
-- [ ] `FennecCast.xcodeproj` 包含一个 iOS App target 和一个 XCTest target，共享 `FennecCast` scheme。
-- [ ] App target 最低支持 iOS 17，使用 Swift 6，并以 `FennecCast` 作为产品名。
-- [ ] SwiftUI 根界面可创建，英文和简体中文至少覆盖应用名称与基础状态文本。
-- [ ] `AppEnvironment` 通过显式初始化注入根界面。
-- [ ] GPL-3.0 许可证、AntennaPod 参考声明、README 和标准 Apple 构建产物忽略规则已存在。
-- [ ] 通用 iOS Simulator `build` 成功。
-- [ ] 通用 iOS Simulator `build-for-testing` 成功。
-- [ ] `swift-format lint --strict` 成功。
-- [ ] 所有变更在新的 FennecCast Git 仓库中形成一个可回滚的原子提交。
+- [x] `FennecCast.xcodeproj` 包含一个 iOS App target 和一个 XCTest target，共享 `FennecCast` scheme。
+- [x] App target 最低支持 iOS 17，使用 Swift 6，并以 `FennecCast` 作为产品名。
+- [x] SwiftUI 根界面可创建，英文和简体中文至少覆盖应用名称与基础状态文本。
+- [x] `AppEnvironment` 通过显式初始化注入根界面。
+- [x] GPL-3.0 许可证、AntennaPod 参考声明、README 和标准 Apple 构建产物忽略规则已存在。
+- [x] 通用 iOS Simulator `build` 成功。
+- [x] 通用 iOS Simulator `build-for-testing` 成功。
+- [x] `swift-format lint --strict` 成功。
+- [x] 所有变更在新的 FennecCast Git 仓库中形成独立、可回滚的原子提交。
+
+## Verification Evidence
+
+2026-08-28 使用 Xcode 27.0（27A5228h）验证：
+
+- 通用 iOS Simulator `build` 成功，签名已禁用。
+- 通用 iOS Simulator `build-for-testing` 成功，依赖图包含 `FennecCast` 和 `FennecCastTests`。
+- `swift-format lint --strict --recursive Sources Tests` 成功。
+- 产物 Bundle Identifier 为 `com.ron159.FennecCast`，最低系统版本为 iOS 17.0。
+- 产物包含 `en.lproj`、`zh-Hans.lproj`、`Assets.car` 以及 arm64/x86_64 Simulator 可执行文件。
+- XCTest 源码与测试 Bundle 已编译，但本机没有安装 Simulator Runtime，因此尚未执行测试用例。
+- 代码质量审查覆盖正确性、简单性、架构、安全和性能，没有发现阻塞项。
 
 ## Open Questions
 

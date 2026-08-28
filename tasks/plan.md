@@ -27,38 +27,38 @@ approved specification
 
 ### Phase 1: Repository foundation
 
-- [ ] Task 1: Initialize the independent repository and record approved artifacts
-- [ ] Task 2: Add licensing, notices, README and repository safeguards
+- [x] Task 1: Initialize the independent repository and record approved artifacts
+- [x] Task 2: Add licensing, notices, README and repository safeguards
 
 ### Checkpoint: Repository foundation
 
-- [ ] `git status -sb` shows only intentional FennecCast files
-- [ ] `git diff --check` reports no whitespace errors
-- [ ] `../AntennaPod/` has not been modified by this module
+- [x] `git status -sb` shows only intentional FennecCast files
+- [x] `git diff --check` reports no whitespace errors
+- [x] `../AntennaPod/` has not been modified by this module
 
 ### Phase 2: Runnable app slice
 
-- [ ] Task 3: Add the minimal SwiftUI app target and shared scheme
-- [ ] Task 4: Add English and Simplified Chinese resources
+- [x] Task 3: Add the minimal SwiftUI app target and shared scheme
+- [x] Task 4: Add English and Simplified Chinese resources
 
 ### Checkpoint: Runnable app
 
-- [ ] Generic iOS Simulator build succeeds without signing
-- [ ] Root view receives an explicit `AppEnvironment`
-- [ ] User-visible foundation strings come from the String Catalog
+- [x] Generic iOS Simulator build succeeds without signing
+- [x] Root view receives an explicit `AppEnvironment`
+- [x] User-visible foundation strings come from the String Catalog
 
 ### Phase 3: Testable foundation
 
-- [ ] Task 5: Add the XCTest target and app-foundation tests
-- [ ] Task 6: Run the complete foundation verification and close the module
+- [x] Task 5: Add the XCTest target and app-foundation tests
+- [x] Task 6: Run the complete foundation verification and close the module
 
 ### Checkpoint: app-foundation complete
 
-- [ ] Generic iOS Simulator build succeeds
-- [ ] Generic iOS Simulator build-for-testing succeeds
-- [ ] `swift-format lint --strict --recursive Sources Tests` succeeds
-- [ ] The Git history contains small, descriptive, independently revertible commits
-- [ ] Every success criterion in `SPEC-app-foundation.md` has current evidence
+- [x] Generic iOS Simulator build succeeds
+- [x] Generic iOS Simulator build-for-testing succeeds
+- [x] `swift-format lint --strict --recursive Sources Tests` succeeds
+- [x] The Git history contains small, descriptive, independently revertible commits
+- [x] Every success criterion in `SPEC-app-foundation.md` has current evidence
 
 ## Risks and Mitigations
 
@@ -73,4 +73,3 @@ approved specification
 ## Open Questions
 
 - None blocking. Runtime XCTest execution remains pending until an iOS Simulator Runtime is installed.
-

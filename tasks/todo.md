@@ -5,14 +5,14 @@
 **Description:** Initialize `FennecCast/` as an independent Git repository and create the first documentation save point containing the approved capability map, module spec, plan and task list.
 
 **Acceptance criteria:**
-- [ ] Git repository is initialized with `main` as the initial branch.
-- [ ] Approved planning artifacts are tracked without modifying `../AntennaPod/`.
-- [ ] Commit message is `docs: define FennecCast foundation scope`.
+- [x] Git repository is initialized with `main` as the initial branch.
+- [x] Approved planning artifacts are tracked without modifying `../AntennaPod/`.
+- [x] Commit message is `docs: define FennecCast foundation scope`.
 
 **Verification:**
-- [ ] `git status -sb` identifies the `main` branch.
-- [ ] `git show --stat --oneline HEAD` contains only approved planning artifacts.
-- [ ] `git diff --check` reports no whitespace errors.
+- [x] `git status -sb` identifies the `main` branch.
+- [x] `git show --stat --oneline HEAD` contains only approved planning artifacts.
+- [x] `git diff --check` reports no whitespace errors.
 
 **Dependencies:** None
 
@@ -29,14 +29,14 @@
 **Description:** Add the GPL-3.0 license, AntennaPod attribution, developer README and ignore rules required for a clean personal iOS repository.
 
 **Acceptance criteria:**
-- [ ] GPL-3.0 license text and AntennaPod GPL reference are present.
-- [ ] README documents prerequisites and the exact foundation build commands.
-- [ ] DerivedData, build output, user Xcode state and signing material are ignored.
+- [x] GPL-3.0 license text and AntennaPod GPL reference are present.
+- [x] README documents prerequisites and the exact foundation build commands.
+- [x] DerivedData, build output, user Xcode state and signing material are ignored.
 
 **Verification:**
-- [ ] `rg -n 'GNU GENERAL PUBLIC LICENSE|AntennaPod|xcodebuild' LICENSE THIRD_PARTY_NOTICES.md README.md` finds each required element.
-- [ ] `git check-ignore` confirms representative generated and signing files are ignored.
-- [ ] `git diff --cached --check` reports no whitespace errors before commit.
+- [x] `rg -n 'GNU GENERAL PUBLIC LICENSE|AntennaPod|xcodebuild' LICENSE THIRD_PARTY_NOTICES.md README.md` finds each required element.
+- [x] `git check-ignore` confirms representative generated and signing files are ignored.
+- [x] `git diff --cached --check` reports no whitespace errors before commit.
 
 **Dependencies:** Task 1
 
@@ -50,23 +50,23 @@
 
 ## Checkpoint: Repository foundation
 
-- [ ] Tasks 1-2 are committed separately.
-- [ ] Working tree contains no unrelated files staged by FennecCast work.
-- [ ] Android repository status is unchanged from the initial inventory.
+- [x] Tasks 1-2 are committed separately.
+- [x] Working tree contains no unrelated files staged by FennecCast work.
+- [x] Android repository status is unchanged from the initial inventory.
 
 ## Task 3: Add the minimal SwiftUI app target
 
 **Description:** Add a checked-in Xcode project, shared scheme and the smallest complete SwiftUI launch path using an explicitly injected `AppEnvironment`.
 
 **Acceptance criteria:**
-- [ ] `FennecCast.xcodeproj` defines an iOS 17 App target using Swift 6 and Bundle Identifier `com.ron159.FennecCast`.
-- [ ] Shared `FennecCast` scheme builds the App target.
-- [ ] `FennecCastApp` creates `AppEnvironment` and injects it into `RootView`.
+- [x] `FennecCast.xcodeproj` defines an iOS 17 App target using Swift 6 and Bundle Identifier `com.ron159.FennecCast`.
+- [x] Shared `FennecCast` scheme builds the App target.
+- [x] `FennecCastApp` creates `AppEnvironment` and injects it into `RootView`.
 
 **Verification:**
-- [ ] Generic iOS Simulator build succeeds with signing disabled using the spec command.
-- [ ] `xcodebuild -list -project FennecCast.xcodeproj` reports target and scheme `FennecCast`.
-- [ ] `swift-format lint --strict --recursive Sources` succeeds.
+- [x] Generic iOS Simulator build succeeds with signing disabled using the spec command.
+- [x] `xcodebuild -list -project FennecCast.xcodeproj` reports target and scheme `FennecCast`.
+- [x] `swift-format lint --strict --recursive Sources` succeeds.
 
 **Dependencies:** Task 2
 
@@ -84,44 +84,45 @@
 **Description:** Replace provisional root text with String Catalog values in English and Simplified Chinese, and add the minimal asset catalog expected by an iOS app.
 
 **Acceptance criteria:**
-- [ ] Root screen has localized title and foundation status text.
-- [ ] English and `zh-Hans` translations exist for each user-visible string.
-- [ ] Asset catalog provides a named accent color without adding placeholder artwork.
+- [x] Root screen has localized title and foundation status text.
+- [x] English and `zh-Hans` translations exist for each user-visible string.
+- [x] Asset catalog provides a named accent color without adding placeholder artwork.
 
 **Verification:**
-- [ ] Generic iOS Simulator build succeeds.
-- [ ] A static catalog check confirms every foundation key has English and `zh-Hans` values.
-- [ ] `swift-format lint --strict --recursive Sources` succeeds.
+- [x] Generic iOS Simulator build succeeds.
+- [x] A static catalog check confirms every foundation key has English and `zh-Hans` values.
+- [x] `swift-format lint --strict --recursive Sources` succeeds.
 
 **Dependencies:** Task 3
 
 **Files likely touched:**
+- `FennecCast.xcodeproj/project.pbxproj`
 - `Sources/App/RootView.swift`
 - `Sources/Resources/Localizable.xcstrings`
 - `Sources/Resources/Assets.xcassets/Contents.json`
 - `Sources/Resources/Assets.xcassets/AccentColor.colorset/Contents.json`
 
-**Estimated scope:** Medium: 4 files
+**Estimated scope:** Medium: 5 files
 
 ## Checkpoint: Runnable app
 
-- [ ] Tasks 3-4 are committed separately.
-- [ ] App target builds without signing.
-- [ ] No business feature or third-party dependency was added.
+- [x] Tasks 3-4 are committed separately.
+- [x] App target builds without signing.
+- [x] No business feature or third-party dependency was added.
 
 ## Task 5: Add the XCTest target
 
 **Description:** Add the FennecCastTests target to the existing project and scheme, with behavior-focused tests for the default app environment and localization resources.
 
 **Acceptance criteria:**
-- [ ] XCTest target links against the App target through `@testable import FennecCast`.
-- [ ] Tests verify the default app name and the presence of both supported localizations.
-- [ ] Shared scheme includes the XCTest target in its Test action.
+- [x] XCTest target links against the App target through `@testable import FennecCast`.
+- [x] Tests verify the default app name and the presence of both supported localizations.
+- [x] Shared scheme includes the XCTest target in its Test action.
 
 **Verification:**
-- [ ] Generic iOS Simulator `build-for-testing` succeeds with signing disabled.
-- [ ] `xcodebuild -list -project FennecCast.xcodeproj` reports `FennecCastTests`.
-- [ ] `swift-format lint --strict --recursive Sources Tests` succeeds.
+- [x] Generic iOS Simulator `build-for-testing` succeeds with signing disabled.
+- [x] `xcodebuild -list -project FennecCast.xcodeproj` reports `FennecCastTests`.
+- [x] `swift-format lint --strict --recursive Sources Tests` succeeds.
 
 **Dependencies:** Task 4
 
@@ -137,15 +138,15 @@
 **Description:** Run every currently executable spec gate, audit the resulting files and Git history, and update task evidence without broadening scope.
 
 **Acceptance criteria:**
-- [ ] All executable success criteria in `SPEC-app-foundation.md` have fresh passing evidence.
-- [ ] Simulator runtime limitation is documented accurately and is not represented as a passing runtime test.
-- [ ] Working tree is clean after the final atomic commit.
+- [x] All executable success criteria in `SPEC-app-foundation.md` have fresh passing evidence.
+- [x] Simulator runtime limitation is documented accurately and is not represented as a passing runtime test.
+- [x] Working tree is clean after the final atomic commit.
 
 **Verification:**
-- [ ] Generic Simulator `build` succeeds.
-- [ ] Generic Simulator `build-for-testing` succeeds.
-- [ ] Full Swift format lint succeeds.
-- [ ] `git diff --cached --check`, focused secret scan and `git status -sb` are clean.
+- [x] Generic Simulator `build` succeeds.
+- [x] Generic Simulator `build-for-testing` succeeds.
+- [x] Full Swift format lint succeeds.
+- [x] `git diff --cached --check`, focused secret scan and `git status -sb` are clean.
 
 **Dependencies:** Task 5
 
@@ -156,6 +157,6 @@
 
 ## Checkpoint: app-foundation complete
 
-- [ ] Review `SPEC-app-foundation.md` success criteria against current evidence.
-- [ ] Review commit history for scope and rollback safety.
+- [x] Review `SPEC-app-foundation.md` success criteria against current evidence.
+- [x] Review commit history for scope and rollback safety.
 - [ ] Obtain human review before starting `core-contracts`.
