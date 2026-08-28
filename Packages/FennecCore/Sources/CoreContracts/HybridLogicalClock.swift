@@ -171,3 +171,33 @@ public struct HybridLogicalClock: Sendable {
     return result
   }
 }
+
+public actor StateSyncClock {
+  private var clock: HybridLogicalClock
+
+  public init(initial: HLCTimestamp = .zero) {
+    self.clock = HybridLogicalClock(initial: initial)
+  }
+
+  public var last: HLCTimestamp {
+    clock.last
+  }
+
+  public func restore(_ timestamp: HLCTimestamp) {
+    guard timestamp > clock.last else { return }
+    clock = HybridLogicalClock(initial: timestamp)
+  }
+
+  @discardableResult
+  public func tick(physicalTimeMilliseconds: Int64) throws -> HLCTimestamp {
+    try clock.tick(physicalTimeMilliseconds: physicalTimeMilliseconds)
+  }
+
+  @discardableResult
+  public func observe(
+    _ remote: HLCTimestamp,
+    physicalTimeMilliseconds: Int64
+  ) throws -> HLCTimestamp {
+    try clock.observe(remote, physicalTimeMilliseconds: physicalTimeMilliseconds)
+  }
+}

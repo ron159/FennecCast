@@ -6,6 +6,44 @@ import Testing
 
 struct RemoteSyncPersistenceTests {
   @Test
+  func persistsMaximumLocalAndRemoteLogicalClock() async throws {
+    let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
+    #expect(try await store.syncClockTimestamp() == .zero)
+    let feedKey = FeedKey(rawValue: "clock-feed")
+    let feedURL = try url("https://example.com/clock.xml")
+    _ = try await store.recordLocalMutation(
+      .subscription(
+        SubscriptionState(feedKey: feedKey, feedURL: feedURL, subscribed: true)
+      ),
+      hlc: HLCTimestamp(wallMilliseconds: 100, counter: 2),
+      createdAtMilliseconds: 100
+    )
+    #expect(
+      try await store.syncClockTimestamp()
+        == HLCTimestamp(wallMilliseconds: 100, counter: 2)
+    )
+    let remote = try SyncChange(
+      serverSequence: 1,
+      deviceID: DeviceID("android-phone"),
+      hlc: HLCTimestamp(wallMilliseconds: 500, counter: 7),
+      entityType: .subscription,
+      entityKey: feedKey.rawValue,
+      payload: .subscription(
+        SubscriptionState(feedKey: feedKey, feedURL: feedURL, subscribed: false)
+      )
+    )
+
+    try await store.applySyncResponse(
+      SyncResponse(acceptedLocalSequence: 0, nextCursor: 1, changes: [remote])
+    )
+
+    #expect(
+      try await store.syncClockTimestamp()
+        == HLCTimestamp(wallMilliseconds: 500, counter: 7)
+    )
+  }
+
+  @Test
   func pendingMutationsAreOrderedLimitedAndRemainMonotonicAfterAcknowledgement() async throws {
     let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
     for index in 1...3 {

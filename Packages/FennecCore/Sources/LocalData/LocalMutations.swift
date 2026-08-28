@@ -85,6 +85,7 @@ extension LocalDataStore {
         """,
       arguments: [localSequence]
     )
+    try persistSyncClock(hlc, db: db)
     try db.execute(
       sql: """
         INSERT INTO sync_outbox(

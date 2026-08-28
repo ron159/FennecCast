@@ -17,12 +17,13 @@ public actor FeedLibraryService {
   private let httpClient: FeedHTTPClient
   private let parser: FeedDocumentParser
   private let timeMilliseconds: @Sendable () -> Int64
-  private var clock = HybridLogicalClock()
+  private let clock: StateSyncClock
 
   public init(
     store: LocalDataStore,
     httpClient: FeedHTTPClient = FeedHTTPClient(),
     parser: FeedDocumentParser = FeedDocumentParser(),
+    clock: StateSyncClock = StateSyncClock(),
     timeMilliseconds: @escaping @Sendable () -> Int64 = {
       Int64((Date().timeIntervalSince1970 * 1_000).rounded())
     }
@@ -30,6 +31,7 @@ public actor FeedLibraryService {
     self.store = store
     self.httpClient = httpClient
     self.parser = parser
+    self.clock = clock
     self.timeMilliseconds = timeMilliseconds
   }
 
@@ -47,7 +49,7 @@ public actor FeedLibraryService {
     let parsedFeed = try parser.parse(data: data, sourceURL: finalURL)
     let finalFeedKey = try FeedKey(canonicalURL: finalURL)
     let timestamp = timeMilliseconds()
-    let hlc = try clock.tick(physicalTimeMilliseconds: timestamp)
+    let hlc = try await clock.tick(physicalTimeMilliseconds: timestamp)
     return try await store.saveInitialSubscription(
       feed: Self.feedMetadata(
         parsedFeed,
@@ -107,7 +109,7 @@ public actor FeedLibraryService {
       throw LocalDataError.feedNotFound
     }
     let timestamp = timeMilliseconds()
-    let hlc = try clock.tick(physicalTimeMilliseconds: timestamp)
+    let hlc = try await clock.tick(physicalTimeMilliseconds: timestamp)
     return try await store.recordLocalMutation(
       .subscription(
         SubscriptionState(

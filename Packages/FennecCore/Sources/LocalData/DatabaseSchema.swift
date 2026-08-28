@@ -45,6 +45,20 @@ enum DatabaseSchema {
           """
       )
     }
+    migrator.registerMigration("v4.syncClock") { db in
+      try db.execute(
+        sql: """
+          ALTER TABLE sync_cursor ADD COLUMN hlc_wall_ms INTEGER NOT NULL DEFAULT 0
+            CHECK (hlc_wall_ms >= 0)
+          """
+      )
+      try db.execute(
+        sql: """
+          ALTER TABLE sync_cursor ADD COLUMN hlc_counter INTEGER NOT NULL DEFAULT 0
+            CHECK (hlc_counter >= 0)
+          """
+      )
+    }
     return migrator
   }
 

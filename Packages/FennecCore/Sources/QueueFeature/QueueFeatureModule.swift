@@ -19,15 +19,17 @@ public enum QueueServiceError: Error, Equatable, Sendable {
 public actor QueueService {
   private let store: LocalDataStore
   private let timeMilliseconds: @Sendable () -> Int64
-  private var clock = HybridLogicalClock()
+  private let clock: StateSyncClock
 
   public init(
     store: LocalDataStore,
+    clock: StateSyncClock = StateSyncClock(),
     timeMilliseconds: @escaping @Sendable () -> Int64 = {
       Int64(Date().timeIntervalSince1970 * 1_000)
     }
   ) {
     self.store = store
+    self.clock = clock
     self.timeMilliseconds = timeMilliseconds
   }
 
@@ -92,7 +94,7 @@ public actor QueueService {
       throw QueueServiceError.entryNotQueued
     }
     let timestamp = timeMilliseconds()
-    let hlc = try clock.tick(physicalTimeMilliseconds: timestamp)
+    let hlc = try await clock.tick(physicalTimeMilliseconds: timestamp)
     return try await store.recordLocalMutation(
       .queueEntry(
         QueueEntryState(
@@ -168,7 +170,7 @@ public actor QueueService {
 
   private func persist(_ payloads: [SyncPayload]) async throws -> [SyncMutation] {
     let timestamp = timeMilliseconds()
-    let hlc = try clock.tick(physicalTimeMilliseconds: timestamp)
+    let hlc = try await clock.tick(physicalTimeMilliseconds: timestamp)
     return try await store.recordLocalMutations(
       payloads,
       hlc: hlc,

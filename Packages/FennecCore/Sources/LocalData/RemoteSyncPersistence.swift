@@ -72,6 +72,9 @@ extension LocalDataStore {
         }
         try Self.apply(change, db: db)
       }
+      if let maximumRemoteClock = response.changes.map(\.hlc).max() {
+        try Self.persistSyncClock(maximumRemoteClock, db: db)
+      }
 
       try db.execute(
         sql: "UPDATE sync_cursor SET server_seq = ? WHERE singleton_id = 1",

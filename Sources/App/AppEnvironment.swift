@@ -16,6 +16,7 @@ enum AppStartupFailure: Equatable {
 final class AppEnvironment {
   let appName: String
   let stateSyncProtocolVersion: Int
+  let stateSyncClock: StateSyncClock?
   let localDataStore: LocalDataStore?
   let feedLibraryService: FeedLibraryService?
   let queueService: QueueService?
@@ -28,6 +29,7 @@ final class AppEnvironment {
   init(
     appName: String = "FennecCast",
     stateSyncProtocolVersion: Int = StateSyncProtocol.version,
+    stateSyncClock: StateSyncClock? = nil,
     localDataStore: LocalDataStore? = nil,
     feedLibraryService: FeedLibraryService? = nil,
     queueService: QueueService? = nil,
@@ -39,6 +41,7 @@ final class AppEnvironment {
   ) {
     self.appName = appName
     self.stateSyncProtocolVersion = stateSyncProtocolVersion
+    self.stateSyncClock = stateSyncClock
     self.localDataStore = localDataStore
     self.feedLibraryService = feedLibraryService
     self.queueService = queueService
@@ -77,7 +80,8 @@ final class AppEnvironment {
         withIntermediateDirectories: true
       )
       let store = try LocalDataStore.openOrCreate(path: databaseURL.path)
-      let queueService = QueueService(store: store)
+      let clock = StateSyncClock()
+      let queueService = QueueService(store: store, clock: clock)
       let storageRoot = databaseURL.deletingLastPathComponent()
       let backgroundDownloadTransport = BackgroundDownloadTransport(
         storageRoot: storageRoot
@@ -94,11 +98,13 @@ final class AppEnvironment {
         sourceResolver: LocalFirstPlaybackSourceResolver(
           store: store,
           storageRoot: storageRoot
-        )
+        ),
+        clock: clock
       )
       return AppEnvironment(
+        stateSyncClock: clock,
         localDataStore: store,
-        feedLibraryService: FeedLibraryService(store: store),
+        feedLibraryService: FeedLibraryService(store: store, clock: clock),
         queueService: queueService,
         playbackEngine: playbackEngine,
         systemPlaybackController: SystemPlaybackController(engine: playbackEngine),

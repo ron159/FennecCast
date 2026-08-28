@@ -88,8 +88,8 @@ public actor PlaybackEngine {
   private let monotonicMilliseconds: @Sendable () -> Int64
   private let checkpointIntervalMilliseconds: Int64
   private let completionPolicy: PlaybackCompletionPolicy
+  private let clock: StateSyncClock
 
-  private var clock = HybridLogicalClock()
   private var phase = PlaybackPhase.idle
   private var item: PlaybackItem?
   private var positionMilliseconds: Int64 = 0
@@ -109,6 +109,7 @@ public actor PlaybackEngine {
     sourceResolver: any PlaybackSourceResolving = StreamingPlaybackSourceResolver(),
     checkpointIntervalMilliseconds: Int64 = 30_000,
     completionPolicy: PlaybackCompletionPolicy = PlaybackCompletionPolicy(),
+    clock: StateSyncClock = StateSyncClock(),
     timeMilliseconds: @escaping @Sendable () -> Int64 = {
       Int64((Date().timeIntervalSince1970 * 1_000).rounded())
     },
@@ -122,6 +123,7 @@ public actor PlaybackEngine {
     self.sourceResolver = sourceResolver
     self.checkpointIntervalMilliseconds = max(1, checkpointIntervalMilliseconds)
     self.completionPolicy = completionPolicy
+    self.clock = clock
     self.timeMilliseconds = timeMilliseconds
     self.monotonicMilliseconds = monotonicMilliseconds
   }
@@ -483,7 +485,7 @@ public actor PlaybackEngine {
       throw PlaybackEngineError.noCurrentItem
     }
     let timestamp = timeMilliseconds()
-    let hlc = try clock.tick(physicalTimeMilliseconds: timestamp)
+    let hlc = try await clock.tick(physicalTimeMilliseconds: timestamp)
     _ = try await store.recordPlaybackMutation(
       episodeKey: item.episodeKey,
       intent: intent,

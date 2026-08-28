@@ -121,6 +121,23 @@ public actor LocalDataStore {
     }
   }
 
+  public func syncClockTimestamp() async throws -> HLCTimestamp {
+    try await writer.read { db in
+      guard
+        let row = try Row.fetchOne(
+          db,
+          sql: "SELECT hlc_wall_ms, hlc_counter FROM sync_cursor WHERE singleton_id = 1"
+        )
+      else {
+        throw LocalDataError.corruptRecord("missing sync_cursor singleton")
+      }
+      return try HLCTimestamp(
+        wallMilliseconds: row["hlc_wall_ms"],
+        counter: row["hlc_counter"]
+      )
+    }
+  }
+
   public func close() throws {
     try writer.close()
   }
@@ -190,6 +207,27 @@ public actor LocalDataStore {
       serverSequence: row["server_seq"],
       lastLocalSequence: row["last_local_seq"],
       deviceID: deviceID
+    )
+  }
+
+  static func persistSyncClock(_ timestamp: HLCTimestamp, db: Database) throws {
+    try db.execute(
+      sql: """
+        UPDATE sync_cursor
+        SET hlc_wall_ms = ?, hlc_counter = ?
+        WHERE singleton_id = 1
+          AND (
+            hlc_wall_ms < ?
+            OR (hlc_wall_ms = ? AND hlc_counter < ?)
+          )
+        """,
+      arguments: [
+        timestamp.wallMilliseconds,
+        timestamp.counter,
+        timestamp.wallMilliseconds,
+        timestamp.wallMilliseconds,
+        timestamp.counter,
+      ]
     )
   }
 }

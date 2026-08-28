@@ -10,6 +10,7 @@ final class AppFoundationTests: XCTestCase {
 
     XCTAssertEqual(environment.appName, "FennecCast")
     XCTAssertEqual(environment.stateSyncProtocolVersion, 1)
+    XCTAssertNil(environment.stateSyncClock)
     XCTAssertNil(environment.localDataStore)
     XCTAssertNil(environment.feedLibraryService)
     XCTAssertNil(environment.queueService)
@@ -31,6 +32,7 @@ final class AppFoundationTests: XCTestCase {
 
     XCTAssertNil(environment.startupFailure)
     XCTAssertNotNil(environment.localDataStore)
+    XCTAssertNotNil(environment.stateSyncClock)
     XCTAssertNotNil(environment.feedLibraryService)
     XCTAssertNotNil(environment.queueService)
     XCTAssertNotNil(environment.playbackEngine)
