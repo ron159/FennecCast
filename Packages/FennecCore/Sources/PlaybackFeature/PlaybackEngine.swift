@@ -89,6 +89,7 @@ public actor PlaybackEngine {
   private let checkpointIntervalMilliseconds: Int64
   private let completionPolicy: PlaybackCompletionPolicy
   private let clock: StateSyncClock
+  private let mutationDidCommit: @Sendable () async -> Void
 
   private var phase = PlaybackPhase.idle
   private var item: PlaybackItem?
@@ -110,6 +111,7 @@ public actor PlaybackEngine {
     checkpointIntervalMilliseconds: Int64 = 30_000,
     completionPolicy: PlaybackCompletionPolicy = PlaybackCompletionPolicy(),
     clock: StateSyncClock = StateSyncClock(),
+    mutationDidCommit: @escaping @Sendable () async -> Void = {},
     timeMilliseconds: @escaping @Sendable () -> Int64 = {
       Int64((Date().timeIntervalSince1970 * 1_000).rounded())
     },
@@ -124,6 +126,7 @@ public actor PlaybackEngine {
     self.checkpointIntervalMilliseconds = max(1, checkpointIntervalMilliseconds)
     self.completionPolicy = completionPolicy
     self.clock = clock
+    self.mutationDidCommit = mutationDidCommit
     self.timeMilliseconds = timeMilliseconds
     self.monotonicMilliseconds = monotonicMilliseconds
   }
@@ -495,6 +498,7 @@ public actor PlaybackEngine {
       hlc: hlc,
       createdAtMilliseconds: timestamp
     )
+    await mutationDidCommit()
   }
 
   private func publishSnapshot() {

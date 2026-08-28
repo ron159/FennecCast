@@ -18,12 +18,14 @@ public actor FeedLibraryService {
   private let parser: FeedDocumentParser
   private let timeMilliseconds: @Sendable () -> Int64
   private let clock: StateSyncClock
+  private let mutationDidCommit: @Sendable () async -> Void
 
   public init(
     store: LocalDataStore,
     httpClient: FeedHTTPClient = FeedHTTPClient(),
     parser: FeedDocumentParser = FeedDocumentParser(),
     clock: StateSyncClock = StateSyncClock(),
+    mutationDidCommit: @escaping @Sendable () async -> Void = {},
     timeMilliseconds: @escaping @Sendable () -> Int64 = {
       Int64((Date().timeIntervalSince1970 * 1_000).rounded())
     }
@@ -32,6 +34,7 @@ public actor FeedLibraryService {
     self.httpClient = httpClient
     self.parser = parser
     self.clock = clock
+    self.mutationDidCommit = mutationDidCommit
     self.timeMilliseconds = timeMilliseconds
   }
 
@@ -50,7 +53,7 @@ public actor FeedLibraryService {
     let finalFeedKey = try FeedKey(canonicalURL: finalURL)
     let timestamp = timeMilliseconds()
     let hlc = try await clock.tick(physicalTimeMilliseconds: timestamp)
-    return try await store.saveInitialSubscription(
+    let result = try await store.saveInitialSubscription(
       feed: Self.feedMetadata(
         parsedFeed,
         feedKey: finalFeedKey,
@@ -64,6 +67,8 @@ public actor FeedLibraryService {
       timestampMilliseconds: timestamp,
       redirectedFromFeedKey: requestedFeedKey == finalFeedKey ? nil : requestedFeedKey
     )
+    await mutationDidCommit()
+    return result
   }
 
   public func refresh(
@@ -110,7 +115,7 @@ public actor FeedLibraryService {
     }
     let timestamp = timeMilliseconds()
     let hlc = try await clock.tick(physicalTimeMilliseconds: timestamp)
-    return try await store.recordLocalMutation(
+    let mutation = try await store.recordLocalMutation(
       .subscription(
         SubscriptionState(
           feedKey: feedKey,
@@ -121,6 +126,8 @@ public actor FeedLibraryService {
       hlc: hlc,
       createdAtMilliseconds: timestamp
     )
+    await mutationDidCommit()
+    return mutation
   }
 
   private static func feedMetadata(

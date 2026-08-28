@@ -5,6 +5,13 @@ public protocol StateSyncDataLoading: Sendable {
   func data(for request: URLRequest) async throws -> (Data, URLResponse)
 }
 
+public protocol StateSyncTransporting: Sendable {
+  func synchronize(
+    _ request: SyncRequest,
+    configuration: StateSyncConfiguration
+  ) async throws -> SyncResponse
+}
+
 public struct URLSessionStateSyncLoader: StateSyncDataLoading {
   public init() {}
 
@@ -35,7 +42,7 @@ public enum StateSyncHTTPError: Error, Equatable, Sendable {
   case network
 }
 
-public struct StateSyncHTTPClient: Sendable {
+public struct StateSyncHTTPClient: Sendable, StateSyncTransporting {
   public static let defaultMaximumBodyBytes = 1_024 * 1_024
 
   private let loader: any StateSyncDataLoading
