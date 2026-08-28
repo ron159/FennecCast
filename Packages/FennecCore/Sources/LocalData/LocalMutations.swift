@@ -87,40 +87,7 @@ extension LocalDataStore {
     for feedKey: FeedKey
   ) async throws -> VersionedState<SubscriptionState>? {
     try await writer.read { db in
-      guard
-        let row = try Row.fetchOne(
-          db,
-          sql: """
-            SELECT
-              canonical_url,
-              subscribed,
-              subscription_hlc_wall_ms AS hlc_wall_ms,
-              subscription_hlc_counter AS hlc_counter,
-              subscription_device_id AS device_id
-            FROM feeds
-            WHERE feed_key = ?
-            """,
-          arguments: [feedKey.rawValue]
-        )
-      else {
-        return nil
-      }
-      let storedDeviceID: String = row["device_id"]
-      guard !storedDeviceID.isEmpty else {
-        return nil
-      }
-      let urlString: String = row["canonical_url"]
-      guard let feedURL = URL(string: urlString) else {
-        throw LocalDataError.corruptRecord("invalid feed url")
-      }
-      return VersionedState(
-        value: SubscriptionState(
-          feedKey: feedKey,
-          feedURL: feedURL,
-          subscribed: row["subscribed"]
-        ),
-        version: try Self.version(from: row)
-      )
+      try Self.fetchSubscriptionState(db, feedKey: feedKey)
     }
   }
 
@@ -128,53 +95,7 @@ extension LocalDataStore {
     for episodeKey: EpisodeKey
   ) async throws -> VersionedState<EpisodePlayback>? {
     try await writer.read { db in
-      guard
-        let row = try Row.fetchOne(
-          db,
-          sql: """
-            SELECT
-              played,
-              position_ms,
-              duration_ms,
-              playback_intent,
-              feed_url,
-              guid,
-              playback_hlc_wall_ms AS hlc_wall_ms,
-              playback_hlc_counter AS hlc_counter,
-              playback_device_id AS device_id
-            FROM episode_state
-            WHERE episode_key = ?
-            """,
-          arguments: [episodeKey.rawValue]
-        )
-      else {
-        return nil
-      }
-      let storedDeviceID: String = row["device_id"]
-      guard !storedDeviceID.isEmpty else {
-        return nil
-      }
-      let intentValue: String = row["playback_intent"]
-      guard let intent = PlaybackIntent(rawValue: intentValue) else {
-        throw LocalDataError.corruptRecord("invalid playback intent")
-      }
-      let feedURLString: String? = row["feed_url"]
-      let feedURL = feedURLString.flatMap(URL.init(string:))
-      if feedURLString != nil, feedURL == nil {
-        throw LocalDataError.corruptRecord("invalid playback feed url")
-      }
-      return VersionedState(
-        value: try EpisodePlayback(
-          episodeKey: episodeKey,
-          intent: intent,
-          positionMilliseconds: row["position_ms"],
-          durationMilliseconds: row["duration_ms"],
-          played: row["played"],
-          feedURL: feedURL,
-          guid: row["guid"]
-        ),
-        version: try Self.version(from: row)
-      )
+      try Self.fetchPlaybackState(db, episodeKey: episodeKey)
     }
   }
 
@@ -182,38 +103,138 @@ extension LocalDataStore {
     for episodeKey: EpisodeKey
   ) async throws -> VersionedState<QueueEntryState>? {
     try await writer.read { db in
-      guard
-        let row = try Row.fetchOne(
-          db,
-          sql: """
-            SELECT
-              order_token,
-              present,
-              queue_hlc_wall_ms AS hlc_wall_ms,
-              queue_hlc_counter AS hlc_counter,
-              queue_device_id AS device_id
-            FROM queue_entries
-            WHERE episode_key = ?
-            """,
-          arguments: [episodeKey.rawValue]
-        )
-      else {
-        return nil
-      }
-      let storedDeviceID: String = row["device_id"]
-      guard !storedDeviceID.isEmpty else {
-        return nil
-      }
-      let tokenValue: String = row["order_token"]
-      return VersionedState(
-        value: QueueEntryState(
-          episodeKey: episodeKey,
-          orderToken: try FractionalIndex(rawValue: tokenValue),
-          present: row["present"]
-        ),
-        version: try Self.version(from: row)
-      )
+      try Self.fetchQueueState(db, episodeKey: episodeKey)
     }
+  }
+
+  static func fetchSubscriptionState(
+    _ db: Database,
+    feedKey: FeedKey
+  ) throws -> VersionedState<SubscriptionState>? {
+    guard
+      let row = try Row.fetchOne(
+        db,
+        sql: """
+          SELECT
+            canonical_url,
+            subscribed,
+            subscription_hlc_wall_ms AS hlc_wall_ms,
+            subscription_hlc_counter AS hlc_counter,
+            subscription_device_id AS device_id
+          FROM feeds
+          WHERE feed_key = ?
+          """,
+        arguments: [feedKey.rawValue]
+      )
+    else {
+      return nil
+    }
+    let storedDeviceID: String = row["device_id"]
+    guard !storedDeviceID.isEmpty else {
+      return nil
+    }
+    let urlString: String = row["canonical_url"]
+    guard let feedURL = URL(string: urlString) else {
+      throw LocalDataError.corruptRecord("invalid feed url")
+    }
+    return VersionedState(
+      value: SubscriptionState(
+        feedKey: feedKey,
+        feedURL: feedURL,
+        subscribed: row["subscribed"]
+      ),
+      version: try version(from: row)
+    )
+  }
+
+  static func fetchPlaybackState(
+    _ db: Database,
+    episodeKey: EpisodeKey
+  ) throws -> VersionedState<EpisodePlayback>? {
+    guard
+      let row = try Row.fetchOne(
+        db,
+        sql: """
+          SELECT
+            played,
+            position_ms,
+            duration_ms,
+            playback_intent,
+            feed_url,
+            guid,
+            playback_hlc_wall_ms AS hlc_wall_ms,
+            playback_hlc_counter AS hlc_counter,
+            playback_device_id AS device_id
+          FROM episode_state
+          WHERE episode_key = ?
+          """,
+        arguments: [episodeKey.rawValue]
+      )
+    else {
+      return nil
+    }
+    let storedDeviceID: String = row["device_id"]
+    guard !storedDeviceID.isEmpty else {
+      return nil
+    }
+    let intentValue: String = row["playback_intent"]
+    guard let intent = PlaybackIntent(rawValue: intentValue) else {
+      throw LocalDataError.corruptRecord("invalid playback intent")
+    }
+    let feedURLString: String? = row["feed_url"]
+    let feedURL = feedURLString.flatMap(URL.init(string:))
+    if feedURLString != nil, feedURL == nil {
+      throw LocalDataError.corruptRecord("invalid playback feed url")
+    }
+    return VersionedState(
+      value: try EpisodePlayback(
+        episodeKey: episodeKey,
+        intent: intent,
+        positionMilliseconds: row["position_ms"],
+        durationMilliseconds: row["duration_ms"],
+        played: row["played"],
+        feedURL: feedURL,
+        guid: row["guid"]
+      ),
+      version: try version(from: row)
+    )
+  }
+
+  static func fetchQueueState(
+    _ db: Database,
+    episodeKey: EpisodeKey
+  ) throws -> VersionedState<QueueEntryState>? {
+    guard
+      let row = try Row.fetchOne(
+        db,
+        sql: """
+          SELECT
+            order_token,
+            present,
+            queue_hlc_wall_ms AS hlc_wall_ms,
+            queue_hlc_counter AS hlc_counter,
+            queue_device_id AS device_id
+          FROM queue_entries
+          WHERE episode_key = ?
+          """,
+        arguments: [episodeKey.rawValue]
+      )
+    else {
+      return nil
+    }
+    let storedDeviceID: String = row["device_id"]
+    guard !storedDeviceID.isEmpty else {
+      return nil
+    }
+    let tokenValue: String = row["order_token"]
+    return VersionedState(
+      value: QueueEntryState(
+        episodeKey: episodeKey,
+        orderToken: try FractionalIndex(rawValue: tokenValue),
+        present: row["present"]
+      ),
+      version: try version(from: row)
+    )
   }
 
   static func persist(
@@ -363,7 +384,7 @@ extension LocalDataStore {
     )
   }
 
-  private static func version(from row: Row) throws -> VersionStamp {
+  static func version(from row: Row) throws -> VersionStamp {
     let deviceValue: String = row["device_id"]
     guard let deviceID = DeviceID(rawValue: deviceValue) else {
       throw LocalDataError.corruptRecord("invalid state device id")

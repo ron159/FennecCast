@@ -5,6 +5,12 @@ import GRDB
 public enum LocalDataError: Error, Equatable, Sendable {
   case deviceIDMismatch(stored: DeviceID, requested: DeviceID)
   case corruptRecord(String)
+  case invalidBatchLimit
+  case invalidAcknowledgement
+  case unorderedServerChanges
+  case cursorRegression(current: Int64, proposed: Int64)
+  case staleServerChange(sequence: Int64, currentCursor: Int64)
+  case serverChangeOutsideCursor(sequence: Int64, nextCursor: Int64)
   case negativeTimestamp
   case localSequenceOverflow
 }
