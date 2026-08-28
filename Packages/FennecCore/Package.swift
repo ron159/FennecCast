@@ -4,15 +4,37 @@ import PackageDescription
 
 let package = Package(
     name: "FennecCore",
-    platforms: [
-        .iOS(.v17),
-        .macOS(.v14),
-    ],
-    products: [
-        .library(name: "CoreContracts", targets: ["CoreContracts"]),
-    ],
-    targets: [
-        .target(name: "CoreContracts"),
-        .testTarget(name: "CoreContractsTests", dependencies: ["CoreContracts"]),
-    ]
+  platforms: [
+    .iOS(.v17),
+    .macOS(.v14),
+  ],
+  products: [
+    .library(name: "CoreContracts", targets: ["CoreContracts"]),
+    .library(name: "LocalData", targets: ["LocalData"]),
+  ],
+  dependencies: [
+    .package(
+      url: "https://github.com/groue/GRDB.swift.git",
+      exact: "7.11.1"
+    )
+  ],
+  targets: [
+    .target(name: "CoreContracts"),
+    .target(
+      name: "LocalData",
+      dependencies: [
+        "CoreContracts",
+        .product(name: "GRDB", package: "GRDB.swift"),
+      ]
+    ),
+    .testTarget(name: "CoreContractsTests", dependencies: ["CoreContracts"]),
+    .testTarget(
+      name: "LocalDataTests",
+      dependencies: [
+        "CoreContracts",
+        "LocalData",
+        .product(name: "GRDB", package: "GRDB.swift"),
+      ]
+    ),
+  ]
 )
