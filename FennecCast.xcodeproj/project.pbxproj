@@ -20,6 +20,7 @@
 		A1000000000000000000000B /* PlaybackFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000006 /* PlaybackFeature */; };
 		A1000000000000000000000C /* DownloadsFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000007 /* DownloadsFeature */; };
 		A1000000000000000000000D /* StateSyncFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000008 /* StateSyncFeature */; };
+		A1000000000000000000000E /* ImportExportFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000009 /* ImportExportFeature */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,6 +56,7 @@
 				A1000000000000000000000B /* PlaybackFeature in Frameworks */,
 				A1000000000000000000000C /* DownloadsFeature in Frameworks */,
 				A1000000000000000000000D /* StateSyncFeature in Frameworks */,
+				A1000000000000000000000E /* ImportExportFeature in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -146,6 +148,7 @@
 				AA0000000000000000000006 /* PlaybackFeature */,
 				AA0000000000000000000007 /* DownloadsFeature */,
 				AA0000000000000000000008 /* StateSyncFeature */,
+				AA0000000000000000000009 /* ImportExportFeature */,
 			);
 			productName = FennecCast;
 			productReference = A20000000000000000000004 /* FennecCast.app */;
@@ -301,6 +304,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
 			productName = StateSyncFeature;
+		};
+		AA0000000000000000000009 /* ImportExportFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
+			productName = ImportExportFeature;
 		};
 /* End XCSwiftPackageProductDependency section */
 

@@ -132,6 +132,47 @@ struct LocalMutationTests {
     #expect(try await store.pendingMutationCount() == 0)
   }
 
+  @Test
+  func exportsConsistentSQLiteBackup() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let backupURL = directory.appendingPathComponent("FennecCast-backup.sqlite")
+    let deviceID = try DeviceID("ios-phone")
+    let store = try LocalDataStore.inMemory(deviceID: deviceID)
+    let state = SubscriptionState(
+      feedKey: FeedKey(rawValue: "feed_backup"),
+      feedURL: try url("https://example.com/backup.xml"),
+      subscribed: true
+    )
+    _ = try await store.recordLocalMutation(
+      .subscription(state),
+      hlc: HLCTimestamp(wallMilliseconds: 300, counter: 0),
+      createdAtMilliseconds: 300
+    )
+
+    try await store.exportDatabase(to: backupURL)
+
+    let restored = try LocalDataStore(path: backupURL.path, deviceID: deviceID)
+    #expect(try await restored.subscriptionState(for: state.feedKey)?.value == state)
+    #expect(try await restored.pendingMutationCount() == 1)
+    #expect((try await restored.syncCursor()).lastLocalSequence == 1)
+    try await restored.close()
+  }
+
+  @Test
+  func databaseExportRefusesToOverwriteExistingFile() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let backupURL = directory.appendingPathComponent("existing.sqlite")
+    try Data("existing".utf8).write(to: backupURL)
+    let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
+
+    await #expect(throws: LocalDataError.backupDestinationExists) {
+      try await store.exportDatabase(to: backupURL)
+    }
+    #expect(try Data(contentsOf: backupURL) == Data("existing".utf8))
+  }
+
   private func url(_ value: String) throws -> URL {
     try #require(URL(string: value))
   }

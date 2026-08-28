@@ -24,6 +24,8 @@ public enum LocalDataError: Error, Equatable, Sendable {
   case invalidDownloadTransition(from: DownloadState, to: DownloadState)
   case invalidDownloadMetadata
   case invalidLocalMediaPath
+  case invalidBackupDestination
+  case backupDestinationExists
 }
 
 public struct SyncCursorState: Equatable, Sendable {
@@ -136,6 +138,20 @@ public actor LocalDataStore {
         counter: row["hlc_counter"]
       )
     }
+  }
+
+  public func exportDatabase(to destinationURL: URL) throws {
+    guard destinationURL.isFileURL, !destinationURL.path.isEmpty else {
+      throw LocalDataError.invalidBackupDestination
+    }
+    let destinationURL = destinationURL.standardizedFileURL
+    guard !FileManager.default.fileExists(atPath: destinationURL.path) else {
+      throw LocalDataError.backupDestinationExists
+    }
+
+    let destination = try DatabaseQueue(path: destinationURL.path)
+    try writer.backup(to: destination)
+    try destination.close()
   }
 
   public func close() throws {
