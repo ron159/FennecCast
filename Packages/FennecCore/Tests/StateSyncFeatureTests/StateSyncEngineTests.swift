@@ -182,6 +182,66 @@ struct StateSyncEngineTests {
     #expect(await transport.callCount == 2)
     #expect(await engine.snapshot().phase == .succeeded)
   }
+
+  @Test
+  func limitsOutboxBatchToMaximumEncodedRequestSize() async throws {
+    let fixture = try await Fixture.make()
+    defer { fixture.removeSettings() }
+    for index in 0..<500 {
+      let url = try #require(
+        URL(
+          string: "https://example.com/feed?index=\(index)&padding="
+            + String(repeating: "a", count: 2_500)
+        )
+      )
+      let feedKey = try FeedKey(canonicalURL: url)
+      _ = try await fixture.store.recordLocalMutation(
+        .subscription(
+          SubscriptionState(feedKey: feedKey, feedURL: url, subscribed: true)
+        ),
+        hlc: HLCTimestamp(wallMilliseconds: Int64(index + 1), counter: 0),
+        createdAtMilliseconds: Int64(index + 1)
+      )
+    }
+    let transport = AcknowledgingSyncTransport()
+    let engine = fixture.makeEngine(transport: transport)
+
+    let result = try await engine.synchronize(trigger: .manual)
+
+    #expect(result.uploadedMutationCount > 0)
+    #expect(result.uploadedMutationCount < 500)
+    let request = try #require(await transport.requests.first)
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+    #expect(try encoder.encode(request).count <= StateSyncHTTPClient.defaultMaximumBodyBytes)
+    #expect(try await fixture.store.pendingMutationCount() == 500 - result.uploadedMutationCount)
+  }
+
+  @Test
+  func rejectsAcknowledgementBeyondUploadedBatch() async throws {
+    let fixture = try await Fixture.make()
+    defer { fixture.removeSettings() }
+    for index in 0..<501 {
+      let url = try #require(URL(string: "https://example.com/feed/\(index)"))
+      let feedKey = try FeedKey(canonicalURL: url)
+      _ = try await fixture.store.recordLocalMutation(
+        .subscription(
+          SubscriptionState(feedKey: feedKey, feedURL: url, subscribed: true)
+        ),
+        hlc: HLCTimestamp(wallMilliseconds: Int64(index + 1), counter: 0),
+        createdAtMilliseconds: Int64(index + 1)
+      )
+    }
+    let transport = OverAcknowledgingSyncTransport()
+    let engine = fixture.makeEngine(transport: transport)
+
+    await #expect(throws: StateSyncEngineError.invalidResponse) {
+      try await engine.synchronize(trigger: .manual)
+    }
+
+    #expect(try await fixture.store.pendingMutationCount() == 501)
+    #expect((try await fixture.store.syncCursor()).serverSequence == 0)
+  }
 }
 
 private actor RecordingSyncTransport: StateSyncTransporting {
@@ -279,6 +339,35 @@ private actor SequencedSyncTransport: StateSyncTransporting {
     await withCheckedContinuation { continuation in
       callWaiters.append((target, continuation))
     }
+  }
+}
+
+private actor AcknowledgingSyncTransport: StateSyncTransporting {
+  private(set) var requests: [SyncRequest] = []
+
+  func synchronize(
+    _ request: SyncRequest,
+    configuration: StateSyncConfiguration
+  ) throws -> SyncResponse {
+    requests.append(request)
+    return try SyncResponse(
+      acceptedLocalSequence: request.mutations.last?.localSequence ?? 0,
+      nextCursor: request.cursor,
+      changes: []
+    )
+  }
+}
+
+private struct OverAcknowledgingSyncTransport: StateSyncTransporting {
+  func synchronize(
+    _ request: SyncRequest,
+    configuration: StateSyncConfiguration
+  ) throws -> SyncResponse {
+    try SyncResponse(
+      acceptedLocalSequence: (request.mutations.last?.localSequence ?? 0) + 1,
+      nextCursor: request.cursor,
+      changes: []
+    )
   }
 }
 

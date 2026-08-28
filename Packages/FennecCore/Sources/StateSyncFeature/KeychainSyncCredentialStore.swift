@@ -36,10 +36,24 @@ public struct KeychainSyncCredentialStore: SyncCredentialStoring {
     guard let data = token.data(using: .utf8) else {
       throw StateSyncSettingsError.credentialStore
     }
-    try deleteToken()
+    let attributes: [String: Any] = [
+      kSecValueData as String: data,
+      kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+    ]
+    let updateStatus = SecItemUpdate(
+      baseQuery as CFDictionary,
+      attributes as CFDictionary
+    )
+    if updateStatus == errSecSuccess {
+      return
+    }
+    guard updateStatus == errSecItemNotFound else {
+      throw StateSyncSettingsError.credentialStore
+    }
     var query = baseQuery
-    query[kSecValueData as String] = data
-    query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    for (key, value) in attributes {
+      query[key] = value
+    }
     guard SecItemAdd(query as CFDictionary, nil) == errSecSuccess else {
       throw StateSyncSettingsError.credentialStore
     }

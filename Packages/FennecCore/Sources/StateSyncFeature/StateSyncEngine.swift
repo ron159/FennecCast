@@ -182,7 +182,7 @@ public actor StateSyncEngine {
       cursor = cursorState.serverSequence
       pendingMutationCount = mutations.count
       publishSnapshot()
-      let request = try SyncRequest(
+      let (request, batchedMutations) = try Self.boundedRequest(
         deviceID: cursorState.deviceID,
         cursor: cursorState.serverSequence,
         mutations: mutations
@@ -191,6 +191,11 @@ public actor StateSyncEngine {
         request,
         configuration: configuration
       )
+      let maximumAcknowledgement =
+        batchedMutations.last?.localSequence ?? cursorState.lastLocalSequence
+      guard response.acceptedLocalSequence <= maximumAcknowledgement else {
+        throw StateSyncEngineError.invalidResponse
+      }
       try await store.applySyncResponse(response)
       if let maximumRemoteClock = response.changes.map(\.hlc).max() {
         _ = try await clock.observe(
@@ -204,8 +209,11 @@ public actor StateSyncEngine {
       phase = .succeeded
       retryCount = 0
       publishSnapshot()
+      if pendingMutationCount > 0 {
+        schedule(.retry, afterNanoseconds: debounceNanoseconds)
+      }
       return StateSyncRunResult(
-        uploadedMutationCount: mutations.count,
+        uploadedMutationCount: batchedMutations.count,
         receivedChangeCount: response.changes.count,
         cursor: response.nextCursor
       )
@@ -272,6 +280,39 @@ public actor StateSyncEngine {
 
   private func removeSnapshotContinuation(_ identifier: UUID) {
     snapshotContinuations[identifier] = nil
+  }
+
+  private static func boundedRequest(
+    deviceID: DeviceID,
+    cursor: Int64,
+    mutations: [SyncMutation]
+  ) throws -> (SyncRequest, [SyncMutation]) {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+
+    func request(prefixCount: Int) throws -> (SyncRequest, [SyncMutation]) {
+      let batch = Array(mutations.prefix(prefixCount))
+      return (
+        try SyncRequest(deviceID: deviceID, cursor: cursor, mutations: batch),
+        batch
+      )
+    }
+
+    var lowerBound = 0
+    var upperBound = mutations.count
+    while lowerBound < upperBound {
+      let candidateCount = lowerBound + (upperBound - lowerBound + 1) / 2
+      let (candidate, _) = try request(prefixCount: candidateCount)
+      if try encoder.encode(candidate).count <= StateSyncHTTPClient.defaultMaximumBodyBytes {
+        lowerBound = candidateCount
+      } else {
+        upperBound = candidateCount - 1
+      }
+    }
+    if lowerBound == 0, !mutations.isEmpty {
+      throw StateSyncEngineError.requestTooLarge
+    }
+    return try request(prefixCount: lowerBound)
   }
 
   private static func map(_ error: any Error) -> StateSyncEngineError {
