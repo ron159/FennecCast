@@ -13,43 +13,58 @@ extension LocalDataStore {
     kind: AliasEntityKind,
     updatedAtMilliseconds: Int64
   ) async throws {
-    try Self.validateAliasKey(aliasKey)
-    try Self.validateAliasKey(canonicalKey)
+    try await writer.write { db in
+      try Self.recordAlias(
+        from: aliasKey,
+        to: canonicalKey,
+        kind: kind,
+        updatedAtMilliseconds: updatedAtMilliseconds,
+        db: db
+      )
+    }
+  }
+
+  static func recordAlias(
+    from aliasKey: String,
+    to canonicalKey: String,
+    kind: AliasEntityKind,
+    updatedAtMilliseconds: Int64,
+    db: Database
+  ) throws {
+    try validateAliasKey(aliasKey)
+    try validateAliasKey(canonicalKey)
     guard updatedAtMilliseconds >= 0 else {
       throw LocalDataError.negativeTimestamp
     }
     guard aliasKey != canonicalKey else {
       throw LocalDataError.aliasCycle
     }
-
-    try await writer.write { db in
-      if let existing = try Self.fetchAlias(aliasKey, db: db) {
-        guard existing.kind == kind else {
-          throw LocalDataError.aliasKindMismatch
-        }
-        guard existing.canonicalKey == canonicalKey else {
-          throw LocalDataError.aliasConflict(
-            existing: existing.canonicalKey,
-            requested: canonicalKey
-          )
-        }
-        return
+    if let existing = try fetchAlias(aliasKey, db: db) {
+      guard existing.kind == kind else {
+        throw LocalDataError.aliasKindMismatch
       }
-
-      _ = try Self.resolveCanonicalKey(
-        canonicalKey,
-        kind: kind,
-        rejecting: aliasKey,
-        db: db
-      )
-      try db.execute(
-        sql: """
-          INSERT INTO sync_aliases(alias_key, canonical_key, entity_kind, updated_at_ms)
-          VALUES (?, ?, ?, ?)
-          """,
-        arguments: [aliasKey, canonicalKey, kind.rawValue, updatedAtMilliseconds]
-      )
+      guard existing.canonicalKey == canonicalKey else {
+        throw LocalDataError.aliasConflict(
+          existing: existing.canonicalKey,
+          requested: canonicalKey
+        )
+      }
+      return
     }
+
+    _ = try resolveCanonicalKey(
+      canonicalKey,
+      kind: kind,
+      rejecting: aliasKey,
+      db: db
+    )
+    try db.execute(
+      sql: """
+        INSERT INTO sync_aliases(alias_key, canonical_key, entity_kind, updated_at_ms)
+        VALUES (?, ?, ?, ?)
+        """,
+      arguments: [aliasKey, canonicalKey, kind.rawValue, updatedAtMilliseconds]
+    )
   }
 
   public func resolveCanonicalKey(

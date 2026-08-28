@@ -8,6 +8,8 @@ public struct FeedDocumentParser: Sendable {
       throw FeedParseError.prohibitedDTD
     }
     let accumulator = FeedXMLAccumulator(sourceURL: sourceURL)
+    // XMLParser is an event-driven delegate parser; external entities stay disabled.
+    // Source: https://developer.apple.com/documentation/foundation/xmlparser
     let parser = XMLParser(data: data)
     parser.delegate = accumulator
     parser.shouldProcessNamespaces = true

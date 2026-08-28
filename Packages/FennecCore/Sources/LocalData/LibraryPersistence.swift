@@ -8,7 +8,8 @@ extension LocalDataStore {
     episodes: [EpisodeMetadata],
     markNewEpisodesInbox: Bool,
     hlc: HLCTimestamp,
-    timestampMilliseconds: Int64
+    timestampMilliseconds: Int64,
+    redirectedFromFeedKey: FeedKey? = nil
   ) async throws -> InitialSubscriptionResult {
     try Self.validateLibraryWrite(
       feed: feed,
@@ -18,6 +19,15 @@ extension LocalDataStore {
     let deviceID = self.deviceID
 
     return try await writer.write { db in
+      if let redirectedFromFeedKey, redirectedFromFeedKey != feed.feedKey {
+        try Self.recordAlias(
+          from: redirectedFromFeedKey.rawValue,
+          to: feed.feedKey.rawValue,
+          kind: .feed,
+          updatedAtMilliseconds: timestampMilliseconds,
+          db: db
+        )
+      }
       try Self.upsertFeed(feed, refreshedAtMilliseconds: timestampMilliseconds, db: db)
       let insertedEpisodeKeys = try Self.upsertEpisodes(
         episodes,
@@ -102,7 +112,6 @@ extension LocalDataStore {
         episode.feedKey == feed.feedKey,
         seenEpisodeKeys.insert(episode.episodeKey).inserted,
         !episode.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-        episode.publicationDateMilliseconds.map({ $0 >= 0 }) ?? true,
         episode.durationMilliseconds.map({ $0 >= 0 }) ?? true,
         episode.enclosureURL.map(isNetworkURL) ?? true,
         episode.linkURL.map(isNetworkURL) ?? true

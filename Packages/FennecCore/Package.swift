@@ -43,7 +43,7 @@ let package = Package(
     ),
     .testTarget(
       name: "FeedLibraryTests",
-      dependencies: ["CoreContracts", "FeedLibrary"]
+      dependencies: ["CoreContracts", "FeedLibrary", "LocalData"]
     ),
   ]
 )
