@@ -15,6 +15,7 @@ let package = Package(
     .library(name: "QueueFeature", targets: ["QueueFeature"]),
     .library(name: "PlaybackFeature", targets: ["PlaybackFeature"]),
     .library(name: "DownloadsFeature", targets: ["DownloadsFeature"]),
+    .library(name: "StateSyncFeature", targets: ["StateSyncFeature"]),
   ],
   dependencies: [
     .package(
@@ -46,6 +47,11 @@ let package = Package(
     .target(
       name: "DownloadsFeature",
       dependencies: ["CoreContracts", "LocalData", "PlaybackFeature"]
+    ),
+    .target(
+      name: "StateSyncFeature",
+      dependencies: ["CoreContracts", "LocalData"],
+      linkerSettings: [.linkedFramework("Security")]
     ),
     .testTarget(name: "CoreContractsTests", dependencies: ["CoreContracts"]),
     .testTarget(
@@ -85,6 +91,10 @@ let package = Package(
         "LocalData",
         "PlaybackFeature",
       ]
+    ),
+    .testTarget(
+      name: "StateSyncFeatureTests",
+      dependencies: ["CoreContracts", "LocalData", "StateSyncFeature"]
     ),
   ]
 )

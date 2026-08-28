@@ -3,8 +3,8 @@
 ## Tasks
 
 - [x] Task 1: Share and persist the Hybrid Logical Clock across synchronized features
-- [ ] Task 2: Add validated server settings and Keychain Bearer-token storage
-- [ ] Task 3: Implement bounded StateSync HTTP transport and protocol validation
+- [x] Task 2: Add validated server settings and Keychain Bearer-token storage
+- [x] Task 3: Implement bounded StateSync HTTP transport and protocol validation
 - [ ] Task 4: Implement single-flight SyncEngine, retry/debounce and status stream
 - [ ] Task 5: Wire foreground, mutation, playback, network and BGAppRefresh triggers
 - [ ] Task 6: Run full package, format, iOS build and build-for-testing verification
