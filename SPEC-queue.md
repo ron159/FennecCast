@@ -36,7 +36,7 @@ Provide a persistent, local-first playback queue whose add, remove and move oper
 Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
 
 - Queue operation and forced-rollback suite: 5 tests passed.
-- Full `FennecCore` package: 70 tests passed.
+- Full `FennecCore` package: 118 tests passed.
 - Strict Swift format lint passed for the application and package sources/tests.
 - Generic iOS Simulator build and `build-for-testing` passed with `QueueFeature` linked to the app.
 - Runtime XCTest execution remains unavailable because this Mac has no installed Simulator Runtime.

@@ -15,6 +15,8 @@ enum AppStartupFailure: Equatable {
 @MainActor
 @Observable
 final class AppEnvironment {
+  static let shared = AppEnvironment.live()
+
   let appName: String
   let stateSyncProtocolVersion: Int
   let stateSyncClock: StateSyncClock?

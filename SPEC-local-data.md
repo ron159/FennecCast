@@ -22,7 +22,7 @@ Provide FennecCast's migrated local SQLite database and the atomic persistence b
 ## 3. In Scope
 
 - A local Swift Package target and product named `LocalData`.
-- Explicit initial migration for `feeds`, `feed_settings`, `episodes`, `episode_state`, `queue_entries`, `media_local`, `sync_outbox`, `sync_cursor` and `sync_aliases`.
+- Ordered migrations for the base tables, feed/library state, download metadata, persistent HLC and Podcasting 2.0 supplemental URLs.
 - Stable string primary keys; Android integer IDs never enter the schema.
 - File-backed and in-memory database creation with persistent device identity validation.
 - Atomic local subscription, playback and queue mutations with monotonically increasing `local_seq` and encoded Outbox envelopes.
@@ -30,12 +30,13 @@ Provide FennecCast's migrated local SQLite database and the atomic persistence b
 - Atomic remote change merge, cursor advancement and acknowledged Outbox deletion.
 - Forward-only alias insertion and cycle-safe canonical key resolution.
 - Read APIs for the three versioned synchronized business states and sync cursor.
+- Metadata/user-state repositories, playback persistence, local download persistence and consistent SQLite backup export.
 
 ## 4. Out of Scope
 
-- Feed parsing, HTTP refresh and full feed/episode repository behavior.
+- Feed parsing and HTTP refresh transport.
 - StateSync HTTP transport, Bearer token and Keychain.
-- UI observation, downloads, media files and playback.
+- UI rendering, media files and AVPlayer ownership.
 - NAS database or Android persistence changes.
 - Snapshot compaction and tombstone garbage collection.
 
@@ -56,15 +57,17 @@ Provide FennecCast's migrated local SQLite database and the atomic persistence b
 - SQL values use bound arguments; entity names are fixed in source.
 - Stored JSON is decoded through validated `CoreContracts` models.
 - Errors identify invalid batches, device mismatch, corrupt records, cursor/order violations and alias conflicts without logging secrets or payload bodies.
+- Backup export refuses non-file destinations and existing files; Keychain credentials are outside the database snapshot.
 
 ## 7. Success Criteria
 
-- A temporary database migrates to all nine application tables with foreign-key checking enabled.
+- A temporary database migrates through every registered schema version with foreign-key checking enabled.
 - Tests prove local state and Outbox atomicity, including a forced SQLite failure rollback.
 - Tests prove local sequences remain monotonic after Outbox acknowledgement.
 - Tests prove remote changes and cursor are atomic and remote apply does not create Outbox rows.
 - Tests prove playback and queue conflict rules are used during remote apply.
 - Tests prove alias idempotency, conflict rejection and cycle detection.
+- Tests prove an exported SQLite snapshot reopens with state, Outbox and cursor intact.
 - Full `LocalData` and `CoreContracts` package tests pass on macOS.
 - Swift format lint, generic iOS Simulator build and build-for-testing pass.
 
@@ -76,7 +79,7 @@ The initial schema migration is append-only after release. Later schema changes 
 
 Verified on 2026-08-29 with Xcode 27 beta, Swift 6.4 and GRDB 7.11.1:
 
-- `xcrun swift test --package-path Packages/FennecCore`: 52 tests passed, including 17 LocalData tests and 35 CoreContracts tests.
+- `xcrun swift test --package-path Packages/FennecCore`: 118 tests passed, including 28 LocalData tests and 37 CoreContracts tests.
 - `xcrun swift-format lint --strict --recursive Sources Tests Packages/FennecCore/Sources Packages/FennecCore/Tests`: passed.
 - Generic iOS Simulator `build`: passed with `CoreContracts`, `LocalData` and GRDB in the application dependency graph.
 - Generic iOS Simulator `build-for-testing`: app and XCTest bundle compiled successfully.

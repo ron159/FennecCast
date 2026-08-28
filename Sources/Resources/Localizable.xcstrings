@@ -1,74 +1,121 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "FennecCast" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FennecCast"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FennecCast"
-          }
-        }
-      }
-    },
-    "foundation.status" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your podcast library is ready for the next feature."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "播客资料库已准备好，可以继续构建核心功能。"
-          }
-        }
-      }
-    },
-    "startup.database.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FennecCast could not open its local library. Restart the app and check available storage."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FennecCast 无法打开本地资料库。请重启应用并检查可用存储空间。"
-          }
-        }
-      }
-    },
-    "startup.database.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local Library Unavailable"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本地资料库不可用"
-          }
-        }
-      }
-    }
+    "FennecCast" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"FennecCast"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"FennecCast"}}}},
+    "action.addFeed" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Add Podcast"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"添加播客"}}}},
+    "action.addInbox" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Add to Inbox"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"加入收件箱"}}}},
+    "action.addQueue" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Add to Queue"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"加入队列"}}}},
+    "action.archive" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Archive"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"归档"}}}},
+    "action.download" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Download"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"下载"}}}},
+    "action.favorite" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Favorite"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"收藏"}}}},
+    "action.markPlayed" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Mark Played"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"标记已播"}}}},
+    "action.markUnplayed" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Mark Unplayed"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"标记未播"}}}},
+    "action.moveDown" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Move Down"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"下移"}}}},
+    "action.moveUp" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Move Up"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"上移"}}}},
+    "action.play" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Play"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"播放"}}}},
+    "action.refreshAll" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Refresh All"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"全部刷新"}}}},
+    "action.removeInbox" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Remove from Inbox"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"移出收件箱"}}}},
+    "action.removeQueue" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Remove from Queue"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"移出队列"}}}},
+    "action.unarchive" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Unarchive"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"取消归档"}}}},
+    "action.unfavorite" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Remove Favorite"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"取消收藏"}}}},
+    "action.unsubscribe" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Unsubscribe"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"取消订阅"}}}},
+    "addFeed.footer" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Enter a direct RSS or Atom feed URL."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"输入 RSS 或 Atom Feed 的直接网址。"}}}},
+    "addFeed.placeholder" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"https://example.com/feed.xml"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"https://example.com/feed.xml"}}}},
+    "addFeed.section" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Feed URL"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"Feed 地址"}}}},
+    "common.add" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Add"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"添加"}}}},
+    "common.cancel" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Cancel"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"取消"}}}},
+    "common.close" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Close"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"关闭"}}}},
+    "common.ok" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"OK"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"好"}}}},
+    "download.cancelling" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Cancelling"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"正在取消"}}}},
+    "download.completed" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Downloaded"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已下载"}}}},
+    "download.failed" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Failed"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"失败"}}}},
+    "download.notRequested" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Not Downloaded"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"未下载"}}}},
+    "download.pause" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Pause"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"暂停"}}}},
+    "download.queued" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Queued"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"等待中"}}}},
+    "download.remove" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Delete File"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"删除文件"}}}},
+    "download.resume" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Resume"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"继续"}}}},
+    "download.retry" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Retry"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"重试"}}}},
+    "download.running" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Downloading"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"下载中"}}}},
+    "download.suspended" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Paused"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已暂停"}}}},
+    "empty.downloads" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"No Downloads"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"暂无下载"}}}},
+    "empty.episodes" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"No Episodes"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"暂无单集"}}}},
+    "empty.queue" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Queue Is Empty"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"队列为空"}}}},
+    "empty.subscriptions" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"No Subscriptions"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"暂无订阅"}}}},
+    "episode.description" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Description"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"简介"}}}},
+    "episode.loadTranscript" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Load Transcript"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"加载文字稿"}}}},
+    "episode.title" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Episode"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"单集"}}}},
+    "episode.transcript" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Transcript"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"文字稿"}}}},
+    "error.invalidFeedURL" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Enter a valid feed URL."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"请输入有效的 Feed 地址。"}}}},
+    "error.invalidSyncToken" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"The sync token must contain at least 32 valid characters."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"同步令牌至少需要 32 个有效字符。"}}}},
+    "error.invalidSyncURL" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Use an HTTPS server URL. HTTP is allowed only for loopback development."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"请使用 HTTPS 服务器地址；仅本机开发可使用 HTTP。"}}}},
+    "error.network" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"The network request failed. Your local changes are safe and will retry later."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"网络请求失败。本地变更已安全保留，稍后会重试。"}}}},
+    "error.operationFailed" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"The operation could not be completed."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"操作未能完成。"}}}},
+    "error.someFeedsFailed" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Some podcasts could not be refreshed. Existing content was kept."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"部分播客刷新失败，已有内容已保留。"}}}},
+    "error.syncAuthentication" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"The StateSync token was rejected."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"StateSync 令牌被服务器拒绝。"}}}},
+    "error.syncNotConfigured" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Configure the StateSync server and token first."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"请先配置 StateSync 服务器和令牌。"}}}},
+    "error.title" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"FennecCast"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"FennecCast"}}}},
+    "filter.all" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"All"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"全部"}}}},
+    "filter.archived" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Archived"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已归档"}}}},
+    "filter.favorites" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Favorites"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"收藏"}}}},
+    "filter.inbox" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Inbox"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"收件箱"}}}},
+    "filter.title" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Filter"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"筛选"}}}},
+    "filter.unplayed" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Unplayed"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"未播放"}}}},
+    "home.continue" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Continue Listening"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"继续收听"}}}},
+    "home.favorites" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Favorites"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"收藏"}}}},
+    "home.new" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"New Episodes"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"新单集"}}}},
+    "opml.exportEmpty" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Subscribe to at least one podcast before exporting OPML."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"请至少订阅一个播客后再导出 OPML。"}}}},
+    "opml.importNoChanges" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Every podcast in this OPML file is already subscribed."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"此 OPML 中的播客均已订阅。"}}}},
+    "opml.importPartial" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"The OPML import finished, but some feeds could not be added."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"OPML 导入已完成，但部分 Feed 添加失败。"}}}},
+    "opml.importSucceeded" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"OPML subscriptions were imported successfully."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"OPML 订阅已成功导入。"}}}},
+    "player.next" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Next"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"下一集"}}}},
+    "player.sleep" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Sleep Timer"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"睡眠定时"}}}},
+    "queue.missingEpisode" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Waiting for episode metadata"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"等待单集元数据"}}}},
+    "search.placeholder" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Episode or podcast"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"单集或播客"}}}},
+    "search.prompt" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Search your library or add a feed URL"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"搜索资料库，或添加 Feed 地址"}}}},
+    "section.episodes" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Episodes"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"单集"}}}},
+    "settings.about.app" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"App"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"应用"}}}},
+    "settings.about.localOnly" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Downloads, Inbox, favorites and settings stay only on this device."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"下载、收件箱、收藏和设置仅保留在本设备。"}}}},
+    "settings.about.protocol" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"StateSync Protocol"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"StateSync 协议"}}}},
+    "settings.about.section" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"About"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"关于"}}}},
+    "settings.backup.export" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Export Local Database Backup"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"导出本地数据库备份"}}}},
+    "settings.opml.export" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Export OPML"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"导出 OPML"}}}},
+    "settings.opml.footer" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"OPML contains feed URLs and titles. The database backup contains local app state, but never the Keychain sync token."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"OPML 仅包含 Feed 地址与标题；数据库备份包含本地应用状态，但不会包含钥匙串中的同步令牌。"}}}},
+    "settings.opml.import" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Import OPML"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"导入 OPML"}}}},
+    "settings.opml.section" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Import and Export"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"导入与导出"}}}},
+    "settings.sync.clear" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Remove StateSync Configuration"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"移除 StateSync 配置"}}}},
+    "settings.sync.cursor" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Server Cursor"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"服务器游标"}}}},
+    "settings.sync.footer" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Only subscriptions, playback and queue state sync. The token is stored in Keychain."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"仅同步订阅、播放与队列；令牌保存在钥匙串中。"}}}},
+    "settings.sync.lastSuccess" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Last Success"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"上次成功"}}}},
+    "settings.sync.now" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Sync Now"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"立即同步"}}}},
+    "settings.sync.pending" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Pending Changes"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"待同步变更"}}}},
+    "settings.sync.phase" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"State"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"状态"}}}},
+    "settings.sync.save" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Save and Test"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"保存并测试"}}}},
+    "settings.sync.section" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"StateSync Lite"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"StateSync Lite"}}}},
+    "settings.sync.server" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Server URL"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"服务器地址"}}}},
+    "settings.sync.status" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Sync Status"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"同步状态"}}}},
+    "settings.sync.token" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"New Token"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"新令牌"}}}},
+    "settings.sync.tokenStored" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"A token is stored securely"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"令牌已安全保存"}}}},
+    "sleep.15" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"15 Minutes"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"15 分钟"}}}},
+    "sleep.30" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"30 Minutes"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"30 分钟"}}}},
+    "sleep.60" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"60 Minutes"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"60 分钟"}}}},
+    "sleep.cancel" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Cancel Timer"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"取消定时"}}}},
+    "sort.newest" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Newest First"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"最新优先"}}}},
+    "sort.oldest" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Oldest First"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"最早优先"}}}},
+    "sort.title" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Sort"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"排序"}}}},
+    "startup.database.message" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"FennecCast could not open its local library. Restart the app and check available storage."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"FennecCast 无法打开本地资料库。请重启应用并检查可用存储空间。"}}}},
+    "startup.database.title" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Local Library Unavailable"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"本地资料库不可用"}}}},
+    "sync.failed" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Failed"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"失败"}}}},
+    "sync.idle" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Idle"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"空闲"}}}},
+    "sync.notConfigured" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Not Configured"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"未配置"}}}},
+    "sync.succeeded" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Up to Date"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已是最新"}}}},
+    "sync.synchronizing" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Synchronizing"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"正在同步"}}}},
+    "tab.downloads" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Downloads"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"下载"}}}},
+    "tab.home" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Home"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"首页"}}}},
+    "tab.inbox" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Inbox"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"收件箱"}}}},
+    "tab.queue" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Queue"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"队列"}}}},
+    "tab.search" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Search"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"搜索"}}}},
+    "tab.settings" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Settings"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"设置"}}}},
+    "tab.subscriptions" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Subscriptions"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"订阅"}}}}
   },
   "version" : "1.0"
 }

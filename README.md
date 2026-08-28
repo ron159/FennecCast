@@ -2,7 +2,10 @@
 
 FennecCast is a personal native iOS podcast client based on the behavioral workflows of AntennaPod. Its first release target is the P0/MVP defined by the StateSync Lite whitepaper: local-first subscriptions, playback, downloads and queues, with only subscriptions, playback state and queue state eligible for cross-device synchronization.
 
-The project is under active development. The approved module order and current specification are documented in `CAPABILITY_MAP.md` and `SPEC-app-foundation.md`.
+The P0 native iOS client is implemented. It includes the local-first library, queue,
+playback, downloads, StateSync Lite, bilingual SwiftUI experience, Podcasting 2.0
+Transcript/chapters, OPML migration and local SQLite backup export. Specifications and
+validation boundaries are documented in `SPEC-*.md`.
 
 ## Requirements
 

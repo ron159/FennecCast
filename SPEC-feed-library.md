@@ -33,7 +33,7 @@ Provide local-first podcast subscription, refresh and library behavior for RSS 2
 
 ## 4. Out of Scope
 
-- JSON Feed, paginated feed crawling, authenticated feeds and Podcasting 2.0 transcripts.
+- JSON Feed, paginated feed crawling and authenticated feeds.
 - Auto-download policy, tags, statistics and feed-specific settings UI.
 - HTML rendering; descriptions remain sanitized storage input and UI-safe plain text later.
 - Server-side feed fetching or Android database changes.
@@ -59,7 +59,7 @@ Provide local-first podcast subscription, refresh and library behavior for RSS 2
 Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
 
 - Feed parser, HTTP and workflow suites: 9 tests passed.
-- Full `FennecCore` package: 70 tests passed.
+- Full `FennecCore` package: 118 tests passed.
 - Strict Swift format lint passed for the application and package sources/tests.
 - Generic iOS Simulator build and `build-for-testing` passed with `FeedLibrary` linked to the app.
 - Runtime XCTest execution remains unavailable because this Mac has no installed Simulator Runtime.

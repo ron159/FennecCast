@@ -1,6 +1,6 @@
 # Specification: StateSync Lite iOS client
 
-**Status:** Approved by the user's standing authorization to continue without repeated confirmation  
+**Status:** Complete
 **Source:** FennecCast whitepaper v1.1, sections 8-10
 
 ## 1. Purpose
@@ -23,6 +23,7 @@ Synchronize only subscription tombstones, episode playback state and queue entri
 - Never log, persist in UserDefaults or include the Bearer token in an error value.
 - Reject URLs with credentials, query, fragment, non-network schemes or insecure non-loopback HTTP.
 - Reject cross-origin redirects, non-JSON responses, non-2xx statuses, oversized request/response bodies and malformed protocol envelopes.
+- Reject an acknowledgement above the highest local sequence actually uploaded in the current batch.
 - Keep generic typed error categories; never surface raw response bodies.
 - Delete Outbox entries only after a valid response has been atomically applied.
 - Persist the maximum local or observed remote HLC in the same database transaction as its associated state change.
@@ -33,3 +34,13 @@ Synchronize only subscription tombstones, episode playback state and queue entri
 - Generic iOS Simulator build and build-for-testing pass with Keychain, Network and BackgroundTasks adapters linked.
 - Strict Swift format lint and all FennecCore tests pass.
 - Physical-device background execution is explicitly left for later device validation.
+
+## 5. Verification Evidence
+
+Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
+
+- All 118 `FennecCore` tests passed, including 12 StateSync tests.
+- Strict Swift format lint passed across application and package sources/tests.
+- Generic iOS Simulator build and `build-for-testing` passed.
+- App XCTest execution remains unavailable because this Mac has no installed Simulator Runtime.
+- BGAppRefreshTask scheduling remains opportunistic and requires later physical-device validation.

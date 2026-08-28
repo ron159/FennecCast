@@ -16,14 +16,14 @@
 
 ## Download persistence and service
 
-- [ ] Add v3 media-local migration and repository tests; observe RED.
-- [ ] Implement typed local download states and queries.
-- [ ] Add transport-backed service tests; observe RED.
-- [ ] Implement start/progress/suspend/resume/retry/cancel/remove/reconcile.
+- [x] Add v3 media-local migration and repository tests; observe RED.
+- [x] Implement typed local download states and queries.
+- [x] Add transport-backed service tests; observe RED.
+- [x] Implement start/progress/suspend/resume/retry/cancel/remove/reconcile.
 
 ## Background transport and closeout
 
-- [ ] Implement fixed-identifier background URLSession and delegate file handling.
-- [ ] Add UIApplicationDelegate completion-handler bridge.
-- [ ] Link playback/download services to AppEnvironment.
-- [ ] Run package, format, iOS build, Info.plist, build-for-testing and audit gates.
+- [x] Implement fixed-identifier background URLSession and delegate file handling.
+- [x] Add UIApplicationDelegate completion-handler bridge.
+- [x] Link playback/download services to AppEnvironment.
+- [x] Run package, format, iOS build, Info.plist, build-for-testing and audit gates.

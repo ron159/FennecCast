@@ -4,7 +4,7 @@
 <dict>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.ron159.FennecCast.state-sync-refresh</string>
+		<string>com.ron159.FennecCast.app-refresh</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

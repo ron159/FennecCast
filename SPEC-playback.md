@@ -58,9 +58,9 @@ Provide one local-first playback state source for streamed or downloaded podcast
 
 Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
 
-- Playback policy, persistence and engine suites: 13 tests passed.
-- Full `FennecCore` package: 83 tests passed.
+- Playback policy, persistence, engine and supplemental-content suites: 17 tests passed.
+- Full `FennecCore` package: 118 tests passed.
 - Strict Swift format lint passed for the application and package sources/tests.
 - Generic iOS Simulator build and `build-for-testing` passed with `PlaybackFeature` linked to the app.
-- The built app `Info.plist` contains `UIBackgroundModes = [audio]`.
+- The built app `Info.plist` contains `UIBackgroundModes = [audio, fetch]`.
 - Lock-screen hardware interaction and background continuation still require physical-device validation.
