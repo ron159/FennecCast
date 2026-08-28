@@ -1,4 +1,5 @@
 import CoreContracts
+import DownloadsFeature
 import FeedLibrary
 import Foundation
 import LocalData
@@ -20,6 +21,8 @@ final class AppEnvironment {
   let queueService: QueueService?
   let playbackEngine: PlaybackEngine?
   let systemPlaybackController: SystemPlaybackController?
+  let downloadManager: DownloadManager?
+  let backgroundDownloadTransport: BackgroundDownloadTransport?
   let startupFailure: AppStartupFailure?
 
   init(
@@ -30,6 +33,8 @@ final class AppEnvironment {
     queueService: QueueService? = nil,
     playbackEngine: PlaybackEngine? = nil,
     systemPlaybackController: SystemPlaybackController? = nil,
+    downloadManager: DownloadManager? = nil,
+    backgroundDownloadTransport: BackgroundDownloadTransport? = nil,
     startupFailure: AppStartupFailure? = nil
   ) {
     self.appName = appName
@@ -39,6 +44,8 @@ final class AppEnvironment {
     self.queueService = queueService
     self.playbackEngine = playbackEngine
     self.systemPlaybackController = systemPlaybackController
+    self.downloadManager = downloadManager
+    self.backgroundDownloadTransport = backgroundDownloadTransport
     self.startupFailure = startupFailure
   }
 
@@ -71,17 +78,32 @@ final class AppEnvironment {
       )
       let store = try LocalDataStore.openOrCreate(path: databaseURL.path)
       let queueService = QueueService(store: store)
+      let storageRoot = databaseURL.deletingLastPathComponent()
+      let backgroundDownloadTransport = BackgroundDownloadTransport(
+        storageRoot: storageRoot
+      )
+      let downloadManager = DownloadManager(
+        store: store,
+        transport: backgroundDownloadTransport,
+        storageRoot: storageRoot
+      )
       let playbackEngine = PlaybackEngine(
         store: store,
         queueService: queueService,
-        driver: AVPlayerPlaybackDriver()
+        driver: AVPlayerPlaybackDriver(),
+        sourceResolver: LocalFirstPlaybackSourceResolver(
+          store: store,
+          storageRoot: storageRoot
+        )
       )
       return AppEnvironment(
         localDataStore: store,
         feedLibraryService: FeedLibraryService(store: store),
         queueService: queueService,
         playbackEngine: playbackEngine,
-        systemPlaybackController: SystemPlaybackController(engine: playbackEngine)
+        systemPlaybackController: SystemPlaybackController(engine: playbackEngine),
+        downloadManager: downloadManager,
+        backgroundDownloadTransport: backgroundDownloadTransport
       )
     } catch {
       return AppEnvironment(startupFailure: .localDatabase)

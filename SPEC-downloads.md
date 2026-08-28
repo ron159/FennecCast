@@ -1,6 +1,6 @@
 # Specification: downloads
 
-**Status:** Approved by the user's standing authorization to continue without repeated confirmation  
+**Status:** Complete  
 **Sources:** FennecCast whitepaper v1.1 and Apple Foundation background-transfer documentation
 
 ## 1. Purpose
@@ -43,3 +43,12 @@ Provide device-local, recoverable podcast media downloads backed by one backgrou
 - Native background URLSession adapter and UIApplicationDelegate bridge compile for generic iOS Simulator.
 - Full package tests, strict formatting, generic iOS build and build-for-testing pass.
 - Simulator build limitations are reported; background continuation requires later physical-device validation.
+
+## 6. Verification Evidence
+
+- `DownloadPersistenceTests` cover lifecycle persistence, invalid transitions and local-only Outbox behavior.
+- `DownloadManagerTests` cover duplicate requests, progress, suspend/resume, cancel, failure/retry, completion validation, relaunch reconciliation and verified local playback fallback.
+- FennecCore package tests pass across all feature modules, including every documented download-state transition.
+- Strict Swift format lint passes for the download and App integration sources.
+- Generic iOS Simulator build and build-for-testing pass with code signing disabled.
+- Background continuation and launch delivery still require physical-iPhone validation because no Simulator runtime is installed in this environment.

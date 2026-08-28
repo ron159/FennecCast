@@ -18,6 +18,7 @@
 		A10000000000000000000009 /* FeedLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000004 /* FeedLibrary */; };
 		A1000000000000000000000A /* QueueFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000005 /* QueueFeature */; };
 		A1000000000000000000000B /* PlaybackFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000006 /* PlaybackFeature */; };
+		A1000000000000000000000C /* DownloadsFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000007 /* DownloadsFeature */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -51,6 +52,7 @@
 				A10000000000000000000009 /* FeedLibrary in Frameworks */,
 				A1000000000000000000000A /* QueueFeature in Frameworks */,
 				A1000000000000000000000B /* PlaybackFeature in Frameworks */,
+				A1000000000000000000000C /* DownloadsFeature in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -140,6 +142,7 @@
 				AA0000000000000000000004 /* FeedLibrary */,
 				AA0000000000000000000005 /* QueueFeature */,
 				AA0000000000000000000006 /* PlaybackFeature */,
+				AA0000000000000000000007 /* DownloadsFeature */,
 			);
 			productName = FennecCast;
 			productReference = A20000000000000000000004 /* FennecCast.app */;
@@ -285,6 +288,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
 			productName = PlaybackFeature;
+		};
+		AA0000000000000000000007 /* DownloadsFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
+			productName = DownloadsFeature;
 		};
 /* End XCSwiftPackageProductDependency section */
 

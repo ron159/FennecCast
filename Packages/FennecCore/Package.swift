@@ -14,6 +14,7 @@ let package = Package(
     .library(name: "FeedLibrary", targets: ["FeedLibrary"]),
     .library(name: "QueueFeature", targets: ["QueueFeature"]),
     .library(name: "PlaybackFeature", targets: ["PlaybackFeature"]),
+    .library(name: "DownloadsFeature", targets: ["DownloadsFeature"]),
   ],
   dependencies: [
     .package(
@@ -42,6 +43,10 @@ let package = Package(
       name: "PlaybackFeature",
       dependencies: ["CoreContracts", "LocalData", "QueueFeature"]
     ),
+    .target(
+      name: "DownloadsFeature",
+      dependencies: ["CoreContracts", "LocalData", "PlaybackFeature"]
+    ),
     .testTarget(name: "CoreContractsTests", dependencies: ["CoreContracts"]),
     .testTarget(
       name: "LocalDataTests",
@@ -68,6 +73,15 @@ let package = Package(
       name: "PlaybackFeatureTests",
       dependencies: [
         "CoreContracts",
+        "LocalData",
+        "PlaybackFeature",
+      ]
+    ),
+    .testTarget(
+      name: "DownloadsFeatureTests",
+      dependencies: [
+        "CoreContracts",
+        "DownloadsFeature",
         "LocalData",
         "PlaybackFeature",
       ]

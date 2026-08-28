@@ -170,6 +170,121 @@ struct DownloadPersistenceTests {
     }
     #expect(records.map(\.episodeKey) == equallyRecentKeys + [fixture.episodeKeys[0]])
   }
+
+  @Test(arguments: DownloadTransition.allowed)
+  func acceptsEveryDocumentedStateTransition(_ transition: DownloadTransition) async throws {
+    let fixture = try await Fixture.make()
+    let key = fixture.episodeKey
+    try await prepare(
+      transition.from,
+      episodeKey: key,
+      store: fixture.store
+    )
+
+    try await fixture.store.saveLocalMediaRecord(
+      record(for: transition.to, episodeKey: key, timestamp: 10)
+    )
+
+    #expect(try await fixture.store.localMediaRecord(for: key)?.state == transition.to)
+  }
+
+  private func prepare(
+    _ state: DownloadState,
+    episodeKey: EpisodeKey,
+    store: LocalDataStore
+  ) async throws {
+    if state == .notRequested {
+      try await store.saveLocalMediaRecord(
+        record(for: .notRequested, episodeKey: episodeKey, timestamp: 2)
+      )
+      return
+    }
+    try await store.saveLocalMediaRecord(
+      record(for: .queued, episodeKey: episodeKey, timestamp: 2)
+    )
+    if state != .queued {
+      try await store.saveLocalMediaRecord(
+        record(for: state, episodeKey: episodeKey, timestamp: 3)
+      )
+    }
+  }
+
+  private func record(
+    for state: DownloadState,
+    episodeKey: EpisodeKey,
+    timestamp: Int64
+  ) -> LocalMediaRecord {
+    switch state {
+    case .notRequested:
+      return LocalMediaRecord(
+        episodeKey: episodeKey,
+        state: state,
+        updatedAtMilliseconds: timestamp
+      )
+    case .queued, .running, .cancelling:
+      return LocalMediaRecord(
+        episodeKey: episodeKey,
+        state: state,
+        taskIdentifier: 7,
+        updatedAtMilliseconds: timestamp
+      )
+    case .suspended:
+      return LocalMediaRecord(
+        episodeKey: episodeKey,
+        state: state,
+        resumeData: Data([1]),
+        updatedAtMilliseconds: timestamp
+      )
+    case .completed:
+      return LocalMediaRecord(
+        episodeKey: episodeKey,
+        state: state,
+        localRelativePath: "Media/\(episodeKey.rawValue).mp3",
+        downloadedBytes: 1,
+        contentLength: 1,
+        updatedAtMilliseconds: timestamp
+      )
+    case .failed:
+      return LocalMediaRecord(
+        episodeKey: episodeKey,
+        state: state,
+        lastError: .network,
+        updatedAtMilliseconds: timestamp
+      )
+    }
+  }
+}
+
+struct DownloadTransition: Sendable, CustomTestStringConvertible {
+  let from: DownloadState
+  let to: DownloadState
+
+  var testDescription: String {
+    "\(from.rawValue) -> \(to.rawValue)"
+  }
+
+  static let allowed = [
+    DownloadTransition(from: .notRequested, to: .queued),
+    DownloadTransition(from: .queued, to: .running),
+    DownloadTransition(from: .queued, to: .suspended),
+    DownloadTransition(from: .queued, to: .completed),
+    DownloadTransition(from: .queued, to: .cancelling),
+    DownloadTransition(from: .queued, to: .failed),
+    DownloadTransition(from: .running, to: .suspended),
+    DownloadTransition(from: .running, to: .completed),
+    DownloadTransition(from: .running, to: .cancelling),
+    DownloadTransition(from: .running, to: .failed),
+    DownloadTransition(from: .suspended, to: .notRequested),
+    DownloadTransition(from: .suspended, to: .queued),
+    DownloadTransition(from: .suspended, to: .running),
+    DownloadTransition(from: .suspended, to: .cancelling),
+    DownloadTransition(from: .suspended, to: .failed),
+    DownloadTransition(from: .completed, to: .notRequested),
+    DownloadTransition(from: .cancelling, to: .notRequested),
+    DownloadTransition(from: .cancelling, to: .failed),
+    DownloadTransition(from: .failed, to: .notRequested),
+    DownloadTransition(from: .failed, to: .queued),
+  ]
 }
 
 private struct Fixture {
