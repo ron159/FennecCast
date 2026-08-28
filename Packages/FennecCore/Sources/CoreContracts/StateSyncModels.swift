@@ -191,12 +191,17 @@ public struct SyncMutation: Codable, Equatable, Hashable, Sendable {
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     let entityType = try container.decode(SyncEntityType.self, forKey: .entityType)
-    let payload = try container.decodePayload(entityType, forKey: .payload)
+    let entityKey = try container.decode(String.self, forKey: .entityKey)
+    let payload = try container.decodePayload(
+      entityType,
+      entityKey: entityKey,
+      forKey: .payload
+    )
     try self.init(
       localSequence: container.decode(Int64.self, forKey: .localSequence),
       hlc: container.decode(HLCTimestamp.self, forKey: .hlc),
       entityType: entityType,
-      entityKey: container.decode(String.self, forKey: .entityKey),
+      entityKey: entityKey,
       payload: payload
     )
   }
@@ -252,13 +257,18 @@ public struct SyncChange: Codable, Equatable, Hashable, Sendable {
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     let entityType = try container.decode(SyncEntityType.self, forKey: .entityType)
-    let payload = try container.decodePayload(entityType, forKey: .payload)
+    let entityKey = try container.decode(String.self, forKey: .entityKey)
+    let payload = try container.decodePayload(
+      entityType,
+      entityKey: entityKey,
+      forKey: .payload
+    )
     try self.init(
       serverSequence: container.decode(Int64.self, forKey: .serverSequence),
       deviceID: container.decode(DeviceID.self, forKey: .deviceID),
       hlc: container.decode(HLCTimestamp.self, forKey: .hlc),
       entityType: entityType,
-      entityKey: container.decode(String.self, forKey: .entityKey),
+      entityKey: entityKey,
       payload: payload
     )
   }
@@ -363,15 +373,20 @@ private func validateEnvelope(
 extension KeyedDecodingContainer {
   fileprivate func decodePayload(
     _ entityType: SyncEntityType,
+    entityKey: String,
     forKey key: Key
   ) throws -> SyncPayload {
     switch entityType {
     case .subscription:
-      .subscription(try decode(SubscriptionState.self, forKey: key))
+      .subscription(
+        try decode(SubscriptionPayloadWire.self, forKey: key).state(entityKey: entityKey)
+      )
     case .episodePlayback:
-      .episodePlayback(try decode(EpisodePlayback.self, forKey: key))
+      .episodePlayback(
+        try decode(EpisodePlaybackPayloadWire.self, forKey: key).state(entityKey: entityKey)
+      )
     case .queueEntry:
-      .queueEntry(try decode(QueueEntryState.self, forKey: key))
+      .queueEntry(try decode(QueueEntryPayloadWire.self, forKey: key).state(entityKey: entityKey))
     }
   }
 }
@@ -383,11 +398,96 @@ extension KeyedEncodingContainer {
   ) throws {
     switch payload {
     case .subscription(let state):
-      try encode(state, forKey: key)
+      try encode(SubscriptionPayloadWire(state), forKey: key)
     case .episodePlayback(let state):
-      try encode(state, forKey: key)
+      try encode(EpisodePlaybackPayloadWire(state), forKey: key)
     case .queueEntry(let state):
-      try encode(state, forKey: key)
+      try encode(QueueEntryPayloadWire(state), forKey: key)
     }
+  }
+}
+
+private struct SubscriptionPayloadWire: Codable {
+  let feedURL: URL
+  let subscribed: Bool
+
+  init(_ state: SubscriptionState) {
+    feedURL = state.feedURL
+    subscribed = state.subscribed
+  }
+
+  func state(entityKey: String) -> SubscriptionState {
+    SubscriptionState(
+      feedKey: FeedKey(rawValue: entityKey),
+      feedURL: feedURL,
+      subscribed: subscribed
+    )
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case feedURL = "feed_url"
+    case subscribed
+  }
+}
+
+private struct EpisodePlaybackPayloadWire: Codable {
+  let intent: PlaybackIntent
+  let positionMilliseconds: Int64
+  let durationMilliseconds: Int64?
+  let played: Bool
+  let feedURL: URL?
+  let guid: String?
+
+  init(_ state: EpisodePlayback) {
+    intent = state.intent
+    positionMilliseconds = state.positionMilliseconds
+    durationMilliseconds = state.durationMilliseconds
+    played = state.played
+    feedURL = state.feedURL
+    guid = state.guid
+  }
+
+  func state(entityKey: String) throws -> EpisodePlayback {
+    try EpisodePlayback(
+      episodeKey: EpisodeKey(rawValue: entityKey),
+      intent: intent,
+      positionMilliseconds: positionMilliseconds,
+      durationMilliseconds: durationMilliseconds,
+      played: played,
+      feedURL: feedURL,
+      guid: guid
+    )
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case intent
+    case positionMilliseconds = "position_ms"
+    case durationMilliseconds = "duration_ms"
+    case played
+    case feedURL = "feed_url"
+    case guid
+  }
+}
+
+private struct QueueEntryPayloadWire: Codable {
+  let orderToken: FractionalIndex
+  let present: Bool
+
+  init(_ state: QueueEntryState) {
+    orderToken = state.orderToken
+    present = state.present
+  }
+
+  func state(entityKey: String) -> QueueEntryState {
+    QueueEntryState(
+      episodeKey: EpisodeKey(rawValue: entityKey),
+      orderToken: orderToken,
+      present: present
+    )
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case orderToken = "order_token"
+    case present
   }
 }

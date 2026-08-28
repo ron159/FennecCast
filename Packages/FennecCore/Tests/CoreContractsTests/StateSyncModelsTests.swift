@@ -47,7 +47,6 @@ struct StateSyncModelsTests {
           "entity_type": "episode_playback",
           "entity_key": "ep_6f1c",
           "payload": {
-            "episode_key": "ep_6f1c",
             "intent": "playback_pause",
             "position_ms": 1264000,
             "duration_ms": 3600000,
@@ -131,9 +130,13 @@ struct StateSyncModelsTests {
     let object = try jsonDictionary(JSONEncoder().encode(mutation))
     let payload = try #require(object["payload"] as? [String: AnyHashable])
 
-    #expect(payload["episode_key"] as? String == "ep_queue")
+    #expect(payload["episode_key"] == nil)
     #expect(payload["order_token"] as? String == "3000000000000000")
     #expect(payload["present"] as? Bool == false)
+    #expect(
+      try JSONDecoder().decode(SyncMutation.self, from: JSONEncoder().encode(mutation))
+        == mutation
+    )
   }
 
   @Test
