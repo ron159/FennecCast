@@ -114,7 +114,9 @@ extension LocalDataStore {
         !episode.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
         episode.durationMilliseconds.map({ $0 >= 0 }) ?? true,
         episode.enclosureURL.map(isNetworkURL) ?? true,
-        episode.linkURL.map(isNetworkURL) ?? true
+        episode.linkURL.map(isNetworkURL) ?? true,
+        episode.transcriptURL.map(isNetworkURL) ?? true,
+        episode.chaptersURL.map(isNetworkURL) ?? true
       else {
         throw LocalDataError.invalidMetadata
       }
@@ -252,9 +254,13 @@ extension LocalDataStore {
           duration_ms,
           description_html,
           mime_type,
+          transcript_url,
+          transcript_type,
+          chapters_url,
+          chapters_type,
           discovered_at_ms,
           updated_at_ms
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
       arguments: [
         episode.episodeKey.rawValue,
@@ -267,6 +273,10 @@ extension LocalDataStore {
         episode.durationMilliseconds,
         episode.summaryHTML,
         episode.mimeType,
+        episode.transcriptURL?.absoluteString,
+        episode.transcriptType,
+        episode.chaptersURL?.absoluteString,
+        episode.chaptersType,
         discoveredAtMilliseconds,
         discoveredAtMilliseconds,
       ]
@@ -289,6 +299,10 @@ extension LocalDataStore {
           duration_ms = ?,
           description_html = ?,
           mime_type = ?,
+          transcript_url = ?,
+          transcript_type = ?,
+          chapters_url = ?,
+          chapters_type = ?,
           updated_at_ms = ?
         WHERE episode_key = ?
         """,
@@ -301,6 +315,10 @@ extension LocalDataStore {
         episode.durationMilliseconds,
         episode.summaryHTML,
         episode.mimeType,
+        episode.transcriptURL?.absoluteString,
+        episode.transcriptType,
+        episode.chaptersURL?.absoluteString,
+        episode.chaptersType,
         refreshedAtMilliseconds,
         episode.episodeKey.rawValue,
       ]

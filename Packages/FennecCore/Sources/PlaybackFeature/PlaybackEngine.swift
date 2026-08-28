@@ -90,6 +90,7 @@ public actor PlaybackEngine {
   private let completionPolicy: PlaybackCompletionPolicy
   private let clock: StateSyncClock
   private let mutationDidCommit: @Sendable () async -> Void
+  private let supplementalContentClient: SupplementalContentClient
 
   private var phase = PlaybackPhase.idle
   private var item: PlaybackItem?
@@ -112,6 +113,7 @@ public actor PlaybackEngine {
     completionPolicy: PlaybackCompletionPolicy = PlaybackCompletionPolicy(),
     clock: StateSyncClock = StateSyncClock(),
     mutationDidCommit: @escaping @Sendable () async -> Void = {},
+    supplementalContentClient: SupplementalContentClient = SupplementalContentClient(),
     timeMilliseconds: @escaping @Sendable () -> Int64 = {
       Int64((Date().timeIntervalSince1970 * 1_000).rounded())
     },
@@ -127,6 +129,7 @@ public actor PlaybackEngine {
     self.completionPolicy = completionPolicy
     self.clock = clock
     self.mutationDidCommit = mutationDidCommit
+    self.supplementalContentClient = supplementalContentClient
     self.timeMilliseconds = timeMilliseconds
     self.monotonicMilliseconds = monotonicMilliseconds
   }
@@ -192,7 +195,8 @@ public actor PlaybackEngine {
       sourceURL: sourceURL,
       title: episode.title,
       podcastTitle: episode.feedTitle,
-      durationMilliseconds: knownDuration
+      durationMilliseconds: knownDuration,
+      chapters: []
     )
     positionMilliseconds = resumePosition
     durationMilliseconds = knownDuration
@@ -209,11 +213,55 @@ public actor PlaybackEngine {
       if autoplay {
         try await play()
       }
+      if let chaptersURL = episode.metadata.chaptersURL {
+        scheduleChapterLoad(
+          from: chaptersURL,
+          episodeKey: episodeKey,
+          generation: generation
+        )
+      }
     } catch {
       phase = .failed
       publishSnapshot()
       throw error
     }
+  }
+
+  private func scheduleChapterLoad(
+    from url: URL,
+    episodeKey: EpisodeKey,
+    generation expectedGeneration: UInt64
+  ) {
+    let client = supplementalContentClient
+    Task.detached { [weak self] in
+      guard let chapters = try? await client.chapters(from: url) else { return }
+      await self?.applyChapters(
+        chapters,
+        episodeKey: episodeKey,
+        generation: expectedGeneration
+      )
+    }
+  }
+
+  private func applyChapters(
+    _ chapters: [PlaybackChapter],
+    episodeKey: EpisodeKey,
+    generation expectedGeneration: UInt64
+  ) {
+    guard
+      generation == expectedGeneration,
+      let current = item,
+      current.episodeKey == episodeKey
+    else { return }
+    item = PlaybackItem(
+      episodeKey: current.episodeKey,
+      sourceURL: current.sourceURL,
+      title: current.title,
+      podcastTitle: current.podcastTitle,
+      durationMilliseconds: current.durationMilliseconds,
+      chapters: chapters
+    )
+    publishSnapshot()
   }
 
   private func connectDriverIfNeeded() async {

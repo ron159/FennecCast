@@ -187,7 +187,11 @@ public actor FeedLibraryService {
           },
           durationMilliseconds: episode.durationMilliseconds,
           summaryHTML: episode.summaryHTML,
-          mimeType: episode.mimeType
+          mimeType: episode.mimeType,
+          transcriptURL: episode.transcriptURL,
+          transcriptType: episode.transcriptType,
+          chaptersURL: episode.chaptersURL,
+          chaptersType: episode.chaptersType
         )
       )
     }

@@ -28,6 +28,13 @@ struct LibraryPersistenceTests {
     let episodes = try await store.libraryEpisodes(filter: .inbox, sort: .newestFirst)
     #expect(episodes.map(\.title) == ["Episode Two", "Episode One"])
     #expect(episodes.allSatisfy { $0.inbox })
+    #expect(
+      episodes[1].metadata.transcriptURL
+        == (try url("https://cdn.example.com/transcript.vtt"))
+    )
+    #expect(episodes[1].metadata.transcriptType == "text/vtt")
+    #expect(episodes[1].metadata.chaptersURL == (try url("https://cdn.example.com/chapters.json")))
+    #expect(episodes[1].metadata.chaptersType == "application/json+chapters")
     #expect(try await store.pendingMutations().map(\.entityType) == [.subscription])
   }
 
@@ -232,7 +239,11 @@ struct LibraryPersistenceTests {
       publicationDateMilliseconds: publication,
       durationMilliseconds: duration,
       summaryHTML: "Notes for \(title)",
-      mimeType: "audio/mpeg"
+      mimeType: "audio/mpeg",
+      transcriptURL: try url("https://cdn.example.com/transcript.vtt"),
+      transcriptType: "text/vtt",
+      chaptersURL: try url("https://cdn.example.com/chapters.json"),
+      chaptersType: "application/json+chapters"
     )
   }
 

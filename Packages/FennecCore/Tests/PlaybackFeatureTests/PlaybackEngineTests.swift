@@ -50,6 +50,30 @@ struct PlaybackEngineTests {
   }
 
   @Test
+  func chapterFetchDoesNotDelayPlaybackLoad() async throws {
+    let chaptersURL = try #require(URL(string: "https://example.com/chapters.json"))
+    let fixture = try await Fixture.make(chaptersURL: chaptersURL)
+    let driver = DriverSpy()
+    let loader = BlockingSupplementalLoader()
+    let engine = PlaybackEngine(
+      store: fixture.store,
+      queueService: fixture.queue,
+      driver: driver,
+      supplementalContentClient: SupplementalContentClient(loader: loader)
+    )
+    let load = Task {
+      try await engine.load(fixture.keys[0], autoplay: true)
+    }
+
+    await loader.waitUntilStarted()
+
+    #expect(await driver.loadCount() == 1)
+    #expect((await engine.snapshot()).phase == .playing)
+    await loader.release()
+    try await load.value
+  }
+
+  @Test
   func checkpointsAtIntervalAndIgnoresStaleDriverEvents() async throws {
     let fixture = try await Fixture.make()
     let driver = DriverSpy()
@@ -287,6 +311,51 @@ private actor DriverSpy: PlaybackDriving {
   func currentRate() -> PlaybackRate { rate }
 }
 
+private actor BlockingSupplementalLoader: SupplementalContentDataLoading {
+  private var started = false
+  private var released = false
+  private var startedContinuations: [CheckedContinuation<Void, Never>] = []
+  private var releaseContinuations: [CheckedContinuation<Void, Never>] = []
+
+  func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+    started = true
+    let waiters = startedContinuations
+    startedContinuations.removeAll()
+    for waiter in waiters {
+      waiter.resume()
+    }
+    if !released {
+      await withCheckedContinuation { continuation in
+        releaseContinuations.append(continuation)
+      }
+    }
+    let data = Data(#"{"chapters":[{"startTime":0,"title":"Opening"}]}"#.utf8)
+    let response = HTTPURLResponse(
+      url: request.url!,
+      statusCode: 200,
+      httpVersion: nil,
+      headerFields: ["Content-Type": "application/json"]
+    )!
+    return (data, response)
+  }
+
+  func waitUntilStarted() async {
+    guard !started else { return }
+    await withCheckedContinuation { continuation in
+      startedContinuations.append(continuation)
+    }
+  }
+
+  func release() {
+    released = true
+    let waiters = releaseContinuations
+    releaseContinuations.removeAll()
+    for waiter in waiters {
+      waiter.resume()
+    }
+  }
+}
+
 private final class LockedClock: @unchecked Sendable {
   private let lock = NSLock()
   private var storedValue: Int64
@@ -310,7 +379,10 @@ private struct Fixture {
   let queue: QueueService
   let keys: [EpisodeKey]
 
-  static func make(includeMissingEnclosure: Bool = false) async throws -> Fixture {
+  static func make(
+    includeMissingEnclosure: Bool = false,
+    chaptersURL: URL? = nil
+  ) async throws -> Fixture {
     let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
     let feedURL = try #require(URL(string: "https://example.com/feed.xml"))
     let feedKey = try FeedKey(canonicalURL: feedURL)
@@ -330,7 +402,9 @@ private struct Fixture {
         publicationDateMilliseconds: Int64(index * 1_000),
         durationMilliseconds: 120_000,
         summaryHTML: nil,
-        mimeType: "audio/mpeg"
+        mimeType: "audio/mpeg",
+        chaptersURL: chaptersURL,
+        chaptersType: chaptersURL == nil ? nil : "application/json+chapters"
       )
     }
     _ = try await store.saveInitialSubscription(

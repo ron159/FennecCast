@@ -57,6 +57,10 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
       (namespace.contains("purl.org/rss/1.0/modules/content")
         || qualifiedName.hasPrefix("content:")) && name == "encoded"
     }
+
+    var isPodcasting20: Bool {
+      namespace.contains("podcastindex.org/namespace") || qualifiedName.hasPrefix("podcast:")
+    }
   }
 
   private struct EpisodeBuilder {
@@ -70,6 +74,10 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
     var summaryHTML: String?
     var summaryPriority = 0
     var mimeType: String?
+    var transcriptURL: URL?
+    var transcriptType: String?
+    var chaptersURL: URL?
+    var chaptersType: String?
 
     mutating func setSummary(_ value: String?, priority: Int) {
       guard let value, priority >= summaryPriority else {
@@ -88,7 +96,11 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
         publicationDate: publicationDate,
         durationMilliseconds: durationMilliseconds,
         summaryHTML: summaryHTML,
-        mimeType: mimeType
+        mimeType: mimeType,
+        transcriptURL: transcriptURL,
+        transcriptType: transcriptType,
+        chaptersURL: chaptersURL,
+        chaptersType: chaptersType
       )
     }
   }
@@ -186,6 +198,16 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
         episode?.mimeType = clean(element.attributes["type"])
       } else if relation == "alternate", episode?.linkURL == nil {
         episode?.linkURL = networkURL(href)
+      }
+    case "transcript" where element.isPodcasting20 && episode?.transcriptURL == nil:
+      if let url = element.attributes["url"] {
+        episode?.transcriptURL = networkURL(url)
+        episode?.transcriptType = clean(element.attributes["type"])
+      }
+    case "chapters" where element.isPodcasting20 && episode?.chaptersURL == nil:
+      if let url = element.attributes["url"] {
+        episode?.chaptersURL = networkURL(url)
+        episode?.chaptersType = clean(element.attributes["type"])
       }
     default:
       break

@@ -59,6 +59,12 @@ enum DatabaseSchema {
           """
       )
     }
+    migrator.registerMigration("v5.episodeSupplementalContent") { db in
+      try db.execute(sql: "ALTER TABLE episodes ADD COLUMN transcript_url TEXT")
+      try db.execute(sql: "ALTER TABLE episodes ADD COLUMN transcript_type TEXT")
+      try db.execute(sql: "ALTER TABLE episodes ADD COLUMN chapters_url TEXT")
+      try db.execute(sql: "ALTER TABLE episodes ADD COLUMN chapters_type TEXT")
+    }
     return migrator
   }
 

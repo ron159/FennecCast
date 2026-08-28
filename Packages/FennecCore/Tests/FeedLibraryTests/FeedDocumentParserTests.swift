@@ -27,6 +27,10 @@ struct FeedDocumentParserTests {
     #expect(first.durationMilliseconds == 3_723_000)
     #expect(first.summaryHTML == "<p>Full notes</p>")
     #expect(first.mimeType == "audio/mpeg")
+    #expect(first.transcriptURL == (try url("https://cdn.example.com/one.vtt")))
+    #expect(first.transcriptType == "text/vtt")
+    #expect(first.chaptersURL == (try url("https://cdn.example.com/one-chapters.json")))
+    #expect(first.chaptersType == "application/json+chapters")
 
     let second = document.episodes[1]
     #expect(second.guid == nil)
@@ -92,7 +96,8 @@ struct FeedDocumentParserTests {
     <?xml version="1.0" encoding="UTF-8"?>
     <rss version="2.0"
          xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
-         xmlns:content="http://purl.org/rss/1.0/modules/content/">
+         xmlns:content="http://purl.org/rss/1.0/modules/content/"
+         xmlns:podcast="https://podcastindex.org/namespace/1.0">
       <channel>
         <title>  Sample &amp; Cast  </title>
         <itunes:author>Example Author</itunes:author>
@@ -108,6 +113,9 @@ struct FeedDocumentParserTests {
           <itunes:duration>01:02:03</itunes:duration>
           <description>Short notes</description>
           <content:encoded><![CDATA[<p>Full notes</p>]]></content:encoded>
+          <podcast:transcript url="https://cdn.example.com/one.vtt" type="text/vtt"/>
+          <podcast:chapters url="https://cdn.example.com/one-chapters.json"
+                            type="application/json+chapters"/>
         </item>
         <item>
           <title>Second Episode</title>

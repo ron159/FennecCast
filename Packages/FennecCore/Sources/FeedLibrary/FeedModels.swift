@@ -46,6 +46,10 @@ public struct ParsedEpisode: Equatable, Sendable {
   public let durationMilliseconds: Int64?
   public let summaryHTML: String?
   public let mimeType: String?
+  public let transcriptURL: URL?
+  public let transcriptType: String?
+  public let chaptersURL: URL?
+  public let chaptersType: String?
 
   public init(
     guid: String?,
@@ -55,7 +59,11 @@ public struct ParsedEpisode: Equatable, Sendable {
     publicationDate: Date?,
     durationMilliseconds: Int64?,
     summaryHTML: String?,
-    mimeType: String?
+    mimeType: String?,
+    transcriptURL: URL? = nil,
+    transcriptType: String? = nil,
+    chaptersURL: URL? = nil,
+    chaptersType: String? = nil
   ) {
     self.guid = guid
     self.enclosureURL = enclosureURL
@@ -65,5 +73,9 @@ public struct ParsedEpisode: Equatable, Sendable {
     self.durationMilliseconds = durationMilliseconds
     self.summaryHTML = summaryHTML
     self.mimeType = mimeType
+    self.transcriptURL = transcriptURL
+    self.transcriptType = transcriptType
+    self.chaptersURL = chaptersURL
+    self.chaptersType = chaptersType
   }
 }
