@@ -10,6 +10,18 @@ public enum PlaybackPhase: Equatable, Sendable {
   case failed
 }
 
+public enum PlaybackCommand: Equatable, Sendable {
+  case play
+  case pause
+  case togglePlayPause
+  case seek(positionMilliseconds: Int64)
+  case skipForward(milliseconds: Int64)
+  case skipBackward(milliseconds: Int64)
+  case setRate(PlaybackRate)
+  case markPlayed
+  case markUnplayed
+}
+
 public struct PlaybackItem: Equatable, Sendable {
   public let episodeKey: EpisodeKey
   public let sourceURL: URL

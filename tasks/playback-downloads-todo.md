@@ -3,14 +3,14 @@
 ## Playback policies and persistence
 
 - [x] Add deterministic rate, completion, sleep and chapter fixtures; observe RED.
-- [ ] Add playback snapshot and command models.
+- [x] Add playback snapshot and command models.
 - [x] Add local playback writer/query helpers without bypassing Outbox.
 
 ## Playback engine and native adapter
 
-- [ ] Add driver-backed engine tests; observe RED.
-- [ ] Implement load/resume, play/pause, seek/skip/rate and periodic checkpoints.
-- [ ] Implement completion, queue advance and sleep timers.
+- [x] Add driver-backed engine tests; observe RED.
+- [x] Implement load/resume, play/pause, seek/skip/rate and periodic checkpoints.
+- [x] Implement completion, queue advance and sleep timers.
 - [ ] Implement AVPlayer/audio-session adapter and stale-event isolation.
 - [ ] Implement Now Playing and remote-command integration.
 

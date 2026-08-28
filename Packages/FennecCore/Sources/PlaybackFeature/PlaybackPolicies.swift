@@ -8,6 +8,8 @@ public enum PlaybackPolicyError: Error, Equatable, Sendable {
 }
 
 public struct PlaybackRate: Codable, Equatable, Hashable, Sendable {
+  public static let normal = PlaybackRate(uncheckedValue: 1)
+
   public let value: Float
 
   public init(_ value: Float) throws {
@@ -15,6 +17,10 @@ public struct PlaybackRate: Codable, Equatable, Hashable, Sendable {
       throw PlaybackPolicyError.invalidRate
     }
     self.value = value
+  }
+
+  private init(uncheckedValue: Float) {
+    value = uncheckedValue
   }
 }
 
