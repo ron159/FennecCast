@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "FennecCore",
+  name: "FennecCore",
   platforms: [
     .iOS(.v17),
     .macOS(.v14),
@@ -11,6 +11,7 @@ let package = Package(
   products: [
     .library(name: "CoreContracts", targets: ["CoreContracts"]),
     .library(name: "LocalData", targets: ["LocalData"]),
+    .library(name: "FeedLibrary", targets: ["FeedLibrary"]),
   ],
   dependencies: [
     .package(
@@ -27,6 +28,10 @@ let package = Package(
         .product(name: "GRDB", package: "GRDB.swift"),
       ]
     ),
+    .target(
+      name: "FeedLibrary",
+      dependencies: ["CoreContracts", "LocalData"]
+    ),
     .testTarget(name: "CoreContractsTests", dependencies: ["CoreContracts"]),
     .testTarget(
       name: "LocalDataTests",
@@ -35,6 +40,10 @@ let package = Package(
         "LocalData",
         .product(name: "GRDB", package: "GRDB.swift"),
       ]
+    ),
+    .testTarget(
+      name: "FeedLibraryTests",
+      dependencies: ["CoreContracts", "FeedLibrary"]
     ),
   ]
 )
