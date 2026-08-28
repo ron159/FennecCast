@@ -5,6 +5,18 @@ import Testing
 
 struct StateSyncModelsTests {
   @Test
+  func protocolVersionAndEntityWhitelistAreFixed() {
+    #expect(StateSyncProtocol.version == 1)
+    #expect(
+      SyncEntityType.allCases == [
+        .subscription,
+        .episodePlayback,
+        .queueEntry,
+      ]
+    )
+  }
+
+  @Test
   func playbackMutationMatchesGoldenJSON() throws {
     let mutation = try SyncMutation(
       localSequence: 157,

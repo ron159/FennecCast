@@ -9,12 +9,17 @@ final class AppFoundationTests: XCTestCase {
     let environment = AppEnvironment()
 
     XCTAssertEqual(environment.appName, "FennecCast")
+    XCTAssertEqual(environment.stateSyncProtocolVersion, 1)
   }
 
   func testEnvironmentPreservesInjectedAppName() {
-    let environment = AppEnvironment(appName: "Preview Cast")
+    let environment = AppEnvironment(
+      appName: "Preview Cast",
+      stateSyncProtocolVersion: 2
+    )
 
     XCTAssertEqual(environment.appName, "Preview Cast")
+    XCTAssertEqual(environment.stateSyncProtocolVersion, 2)
   }
 
   func testAppBundleContainsSupportedLocalizations() {

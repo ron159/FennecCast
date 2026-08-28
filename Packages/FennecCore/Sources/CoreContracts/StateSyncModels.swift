@@ -1,5 +1,9 @@
 import Foundation
 
+public enum StateSyncProtocol {
+  public static let version = 1
+}
+
 public enum SyncEntityType: String, Codable, CaseIterable, Sendable {
   case subscription
   case episodePlayback = "episode_playback"
