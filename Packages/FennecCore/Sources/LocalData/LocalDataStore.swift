@@ -15,6 +15,10 @@ public enum LocalDataError: Error, Equatable, Sendable {
   case aliasKindMismatch
   case aliasConflict(existing: String, requested: String)
   case aliasCycle
+  case feedNotFound
+  case episodeNotFound
+  case invalidMetadata
+  case invalidQueryLimit
   case negativeTimestamp
   case localSequenceOverflow
 }
@@ -90,6 +94,21 @@ public actor LocalDataStore {
   public func foreignKeysEnabled() async throws -> Bool {
     try await writer.read { db in
       try Int.fetchOne(db, sql: "PRAGMA foreign_keys") == 1
+    }
+  }
+
+  public func applicationIndexNames() async throws -> [String] {
+    try await writer.read { db in
+      try String.fetchAll(
+        db,
+        sql: """
+          SELECT name
+          FROM sqlite_master
+          WHERE type = 'index'
+            AND name NOT LIKE 'sqlite_autoindex_%'
+          ORDER BY name
+          """
+      )
     }
   }
 

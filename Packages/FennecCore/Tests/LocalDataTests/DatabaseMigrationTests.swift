@@ -26,6 +26,18 @@ struct DatabaseMigrationTests {
       ]
     )
     #expect(try await store.foreignKeysEnabled())
+    #expect(
+      try await store.applicationIndexNames() == [
+        "episode_state_archived",
+        "episode_state_favorite",
+        "episode_state_inbox",
+        "episode_state_played",
+        "episodes_feed_date",
+        "episodes_publication_date",
+        "feeds_subscription_title",
+        "queue_present_order",
+      ]
+    )
     #expect(cursor.serverSequence == 0)
     #expect(cursor.lastLocalSequence == 0)
     #expect(cursor.deviceID == DeviceID(rawValue: "ios-phone"))

@@ -16,6 +16,20 @@ enum DatabaseSchema {
       try createSyncCursor(db)
       try createSyncAliases(db)
     }
+    migrator.registerMigration("v2.libraryIndexes") { db in
+      try db.execute(
+        sql: "CREATE INDEX feeds_subscription_title ON feeds(subscribed, title COLLATE NOCASE)"
+      )
+      try db.execute(sql: "CREATE INDEX episodes_publication_date ON episodes(publication_date_ms)")
+      try db.execute(sql: "CREATE INDEX episode_state_inbox ON episode_state(inbox, episode_key)")
+      try db.execute(
+        sql: "CREATE INDEX episode_state_favorite ON episode_state(favorite, episode_key)"
+      )
+      try db.execute(sql: "CREATE INDEX episode_state_played ON episode_state(played, episode_key)")
+      try db.execute(
+        sql: "CREATE INDEX episode_state_archived ON episode_state(archived, episode_key)"
+      )
+    }
     return migrator
   }
 

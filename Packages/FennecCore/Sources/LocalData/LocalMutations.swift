@@ -8,69 +8,85 @@ extension LocalDataStore {
     hlc: HLCTimestamp,
     createdAtMilliseconds: Int64
   ) async throws -> SyncMutation {
-    guard createdAtMilliseconds >= 0 else {
-      throw LocalDataError.negativeTimestamp
-    }
     let deviceID = self.deviceID
 
     // `write` transaction-wraps the business update, sequence allocation, and Outbox insert.
     // Source: https://github.com/groue/GRDB.swift/blob/master/GRDB/Core/DatabaseWriter.swift
     return try await writer.write { db in
-      let cursor = try Self.fetchCursor(db)
-      let (localSequence, overflow) = cursor.lastLocalSequence.addingReportingOverflow(1)
-      guard !overflow else {
-        throw LocalDataError.localSequenceOverflow
-      }
-      let version = VersionStamp(timestamp: hlc, deviceID: deviceID)
-      try Self.persist(
+      try Self.recordLocalMutation(
         payload,
-        version: version,
-        updatedAtMilliseconds: createdAtMilliseconds,
+        hlc: hlc,
+        deviceID: deviceID,
+        createdAtMilliseconds: createdAtMilliseconds,
         db: db
       )
-
-      let mutation = try SyncMutation(
-        localSequence: localSequence,
-        hlc: hlc,
-        entityType: payload.entityType,
-        entityKey: payload.entityKey,
-        payload: payload
-      )
-      let envelope = try JSONEncoder().encode(mutation)
-      try db.execute(
-        sql: """
-          UPDATE sync_cursor
-          SET last_local_seq = ?
-          WHERE singleton_id = 1
-          """,
-        arguments: [localSequence]
-      )
-      try db.execute(
-        sql: """
-          INSERT INTO sync_outbox(
-            device_id,
-            local_seq,
-            hlc_wall_ms,
-            hlc_counter,
-            entity_type,
-            entity_key,
-            envelope_json,
-            created_at_ms
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          """,
-        arguments: [
-          deviceID.rawValue,
-          localSequence,
-          hlc.wallMilliseconds,
-          hlc.counter,
-          payload.entityType.rawValue,
-          payload.entityKey,
-          envelope,
-          createdAtMilliseconds,
-        ]
-      )
-      return mutation
     }
+  }
+
+  static func recordLocalMutation(
+    _ payload: SyncPayload,
+    hlc: HLCTimestamp,
+    deviceID: DeviceID,
+    createdAtMilliseconds: Int64,
+    db: Database
+  ) throws -> SyncMutation {
+    guard createdAtMilliseconds >= 0 else {
+      throw LocalDataError.negativeTimestamp
+    }
+    let cursor = try fetchCursor(db)
+    let (localSequence, overflow) = cursor.lastLocalSequence.addingReportingOverflow(1)
+    guard !overflow else {
+      throw LocalDataError.localSequenceOverflow
+    }
+    let version = VersionStamp(timestamp: hlc, deviceID: deviceID)
+    try persist(
+      payload,
+      version: version,
+      updatedAtMilliseconds: createdAtMilliseconds,
+      db: db
+    )
+
+    let mutation = try SyncMutation(
+      localSequence: localSequence,
+      hlc: hlc,
+      entityType: payload.entityType,
+      entityKey: payload.entityKey,
+      payload: payload
+    )
+    let envelope = try JSONEncoder().encode(mutation)
+    try db.execute(
+      sql: """
+        UPDATE sync_cursor
+        SET last_local_seq = ?
+        WHERE singleton_id = 1
+        """,
+      arguments: [localSequence]
+    )
+    try db.execute(
+      sql: """
+        INSERT INTO sync_outbox(
+          device_id,
+          local_seq,
+          hlc_wall_ms,
+          hlc_counter,
+          entity_type,
+          entity_key,
+          envelope_json,
+          created_at_ms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+      arguments: [
+        deviceID.rawValue,
+        localSequence,
+        hlc.wallMilliseconds,
+        hlc.counter,
+        payload.entityType.rawValue,
+        payload.entityKey,
+        envelope,
+        createdAtMilliseconds,
+      ]
+    )
+    return mutation
   }
 
   public func pendingMutationCount() async throws -> Int {
