@@ -1,43 +1,35 @@
-# Task List: core-contracts
+# Task List: local-data
 
-## Task 1: Canonical identity
+## Task 1: Dependency and schema
 
-- [x] Add the local Swift Package skeleton and canonical identity tests.
-- [x] Observe the tests fail before production implementation exists.
-- [x] Implement deterministic URL normalization, `FeedKey` and `EpisodeKey`.
-- [x] Pass focused identity tests and format lint.
+- [ ] Pin GRDB 7.11.1 and add `LocalData` targets.
+- [ ] Add schema and device-identity tests, then observe RED.
+- [ ] Implement ordered migration and database factories.
+- [ ] Verify all nine tables, singleton cursor defaults and device mismatch rejection.
 
-## Task 2: Hybrid Logical Clock
+## Task 2: Local atomic mutations
 
-- [x] Add deterministic clock and ordering tests.
-- [x] Observe RED before implementation.
-- [x] Implement validated timestamps, version stamps, local tick and remote observe.
-- [x] Pass focused HLC tests and format lint.
+- [ ] Add subscription, playback, queue and sequence tests, then observe RED.
+- [ ] Implement business state persistence and Outbox encoding in one transaction.
+- [ ] Force an Outbox insertion failure and prove complete rollback.
+- [ ] Verify local mutation reads return versioned states.
 
-## Task 3: Fractional queue tokens
+## Task 3: Remote apply and cursor
 
-- [x] Add prepend, append, insertion, ordering, exhaustion and rebase tests.
-- [x] Observe RED before implementation.
-- [x] Implement fixed-width hexadecimal tokens and rebase.
-- [x] Pass focused fractional-index tests and format lint.
+- [ ] Add pending batch and response-application tests, then observe RED.
+- [ ] Implement ordered pending reads with the 500-item limit.
+- [ ] Implement conflict-aware remote apply, cursor advancement and Outbox acknowledgement.
+- [ ] Verify cursor regression/order rejection and monotonic local sequence after cleanup.
 
-## Task 4: StateSync v1 models
+## Task 4: Aliases
 
-- [x] Add JSON golden tests and validation tests.
-- [x] Observe RED before implementation.
-- [x] Implement the entity whitelist, payloads and request/response envelopes.
-- [x] Pass focused coding tests and format lint.
+- [ ] Add alias chain, idempotency, conflict and cycle tests, then observe RED.
+- [ ] Implement alias insertion and canonical resolution.
+- [ ] Pass focused alias tests.
 
-## Task 5: Conflict resolution
+## Task 5: Integration and closeout
 
-- [x] Add LWW tombstone, backward-seek and intent-priority tests.
-- [x] Observe RED before implementation.
-- [x] Implement deterministic subscription, playback and queue resolution.
-- [x] Pass focused merge tests and the complete package suite.
-
-## Task 6: iOS integration and closeout
-
-- [x] Link the local `CoreContracts` product to the app target.
-- [x] Build the generic iOS Simulator destination without signing.
-- [x] Run full package tests, format lint, diff checks and focused secret scan.
-- [x] Record verification evidence and leave the working tree clean.
+- [ ] Link `LocalData` to the FennecCast app target.
+- [ ] Run all package tests and strict format lint.
+- [ ] Run generic iOS build and build-for-testing.
+- [ ] Run diff, secret, schema and adjacent-checkout audits; record evidence.
