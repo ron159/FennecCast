@@ -1,35 +1,36 @@
-# Task List: local-data
+# Task List: feed-library and queue
 
-## Task 1: Dependency and schema
+## Task 1: Feed parser
 
-- [x] Pin GRDB 7.11.1 and add `LocalData` targets.
-- [x] Add schema and device-identity tests, then observe RED.
-- [x] Implement ordered migration and database factories.
-- [x] Verify all nine tables, singleton cursor defaults and device mismatch rejection.
+- [ ] Add `FeedLibrary` target and golden RSS/Atom fixtures.
+- [ ] Observe parser tests fail before implementation.
+- [ ] Implement namespace-aware XML parsing, dates and durations.
+- [ ] Verify malformed XML and unsupported roots fail safely.
 
-## Task 2: Local atomic mutations
+## Task 2: Library persistence
 
-- [x] Add subscription, playback, queue and sequence tests, then observe RED.
-- [x] Implement business state persistence and Outbox encoding in one transaction.
-- [x] Force an Outbox insertion failure and prove complete rollback.
-- [x] Verify local mutation reads return versioned states.
+- [ ] Add metadata/user-state preservation tests, then observe RED.
+- [ ] Implement atomic first subscription and metadata-only refresh.
+- [ ] Implement feed and episode queries plus Inbox/favorite/archive actions.
+- [ ] Verify invalid episodes are skipped and existing state is preserved.
 
-## Task 3: Remote apply and cursor
+## Task 3: Fetch and workflows
 
-- [x] Add pending batch and response-application tests, then observe RED.
-- [x] Implement ordered pending reads with the 500-item limit.
-- [x] Implement conflict-aware remote apply, cursor advancement and Outbox acknowledgement.
-- [x] Verify cursor regression/order rejection and monotonic local sequence after cleanup.
+- [ ] Add stubbed HTTP request/response tests, then observe RED.
+- [ ] Implement conditional headers, bounds and HTTP status handling.
+- [ ] Implement add, refresh and unsubscribe workflows with redirect aliases.
+- [ ] Verify `304` and failures do not write local state.
 
-## Task 4: Aliases
+## Task 4: Queue
 
-- [x] Add alias chain, idempotency, conflict and cycle tests, then observe RED.
-- [x] Implement alias insertion and canonical resolution.
-- [x] Pass focused alias tests.
+- [ ] Add queue operation and rebase tests, then observe RED.
+- [ ] Implement current queue query and fractional placement.
+- [ ] Implement tombstone removal, re-add, move and auto-advance.
+- [ ] Prove atomic rebase and ordered Outbox mutations.
 
 ## Task 5: Integration and closeout
 
-- [x] Link `LocalData` to the FennecCast app target.
-- [x] Run all package tests and strict format lint.
-- [x] Run generic iOS build and build-for-testing.
-- [x] Run diff, secret, schema and adjacent-checkout audits; record evidence.
+- [ ] Link `FeedLibrary` and queue services to the app environment.
+- [ ] Run all package tests and strict format lint.
+- [ ] Run generic iOS build and build-for-testing.
+- [ ] Run diff, secret and adjacent-checkout audits; record evidence.

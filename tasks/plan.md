@@ -1,44 +1,43 @@
-# Implementation Plan: local-data
+# Implementation Plan: feed-library and queue
 
 ## Overview
 
-Add GRDB 7.11.1 to `FennecCore`, migrate the complete local schema, implement atomic StateSync state persistence, then link `LocalData` into the iOS target and verify both macOS tests and iOS compilation.
+Build the RSS/Atom parser and library persistence first, add bounded conditional fetching and subscription workflows, then implement the synchronized queue repository over the same local transaction boundary.
 
 ## Architecture Decisions
 
-- One `LocalDataStore` actor owns a type-erased GRDB writer.
-- Production files use `DatabasePool`; tests use `DatabaseQueue` in memory or at a temporary path.
-- Raw SQL defines the schema and focused persistence statements; `CoreContracts` remains storage-independent.
-- The singleton cursor row also persists the device ID and last allocated local sequence.
-- Remote merge reuses `ConflictResolver`; transport remains a later module.
+- `FeedLibrary` contains parser, HTTP client and user workflow code; it never sees a live database connection.
+- `LocalData` owns metadata transactions and user-state queries.
+- Foundation `XMLParser` avoids a second feed dependency and keeps identity behavior explicit.
+- Queue operations use approved `FractionalIndex` values and atomic batch mutation support.
 
 ## Tasks
 
-- [x] Task 1: Pin GRDB and create the initial nine-table migration from failing schema tests
-- [x] Task 2: Implement local state plus Outbox atomic transactions from failing tests
-- [x] Task 3: Implement pending reads and remote response/cursor transactions from failing tests
-- [x] Task 4: Implement forward-only aliases from failing tests
-- [x] Task 5: Link `LocalData` to the app and complete module verification
+- [ ] Task 1: Add `FeedLibrary` models and RSS/Atom parser from failing golden fixtures
+- [ ] Task 2: Add feed/episode metadata transactions and library queries from failing database tests
+- [ ] Task 3: Add bounded conditional HTTP refresh and subscription workflows from stubbed fetch tests
+- [ ] Task 4: Add atomic batch mutations and queue repository from failing operation/rebase tests
+- [ ] Task 5: Link services into the app and complete both-module verification
 
 ## Checkpoints
 
-- [x] Every behavior slice records RED before production implementation.
-- [x] Database failure injection proves rollback rather than partial state.
-- [x] Full package tests and format lint pass.
-- [x] Generic iOS build and build-for-testing pass.
-- [x] Adjacent Android checkout remains unchanged.
+- [ ] Every behavior slice records RED before production implementation.
+- [ ] Feed parse/fetch failures leave the database unchanged.
+- [ ] Queue rebase and its Outbox operations are atomic.
+- [ ] Full package tests and format lint pass.
+- [ ] Generic iOS build and build-for-testing pass.
+- [ ] Adjacent Android checkout remains unchanged.
 
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Business state commits without Outbox | High | One documented GRDB `write` transaction plus forced-failure test |
-| Cursor advances before all changes apply | High | Validate and merge the entire response in the same transaction as cursor update |
-| Local sequence repeats after cleanup | High | Persist allocator in singleton cursor row, independent of Outbox contents |
-| Remote episode arrives before metadata | Medium | Permit synchronized semantic rows without episode foreign-key parent |
-| Alias redirect forms a loop | Medium | Traverse candidate chain before insert and reject cycles/conflicting remaps |
-| GRDB API drift | Medium | Pin 7.11.1 and follow current official source documentation |
+| Malformed XML or external entities | High | Event parser, entity resolution disabled, golden failure fixtures |
+| Refresh overwrites user state | High | Metadata-only upsert plus persistence regression tests |
+| Redirect changes identity | High | Canonical response URL and forward-only feed alias |
+| Huge response exhausts memory | Medium | 10 MiB response limit before parsing |
+| Queue token gap exhausts | Medium | Atomic deterministic rebase fallback |
 
 ## Open Questions
 
-None blocking. Feed metadata repositories are intentionally deferred to `feed-library`.
+None blocking. JSON Feed and authenticated feeds remain later increments.
