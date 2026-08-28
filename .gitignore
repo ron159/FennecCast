@@ -1,0 +1,26 @@
+.DS_Store
+:memory:
+
+# Xcode user state and build output
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+# Swift Package Manager local output
+.build/
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+
+# Local configuration and signing material
+.env
+.env.*
+!.env.example
+*.cer
+*.mobileprovision
+*.p12
+*.pem
+*.provisionprofile
+
