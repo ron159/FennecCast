@@ -5,6 +5,8 @@ import GRDB
 public enum LocalDataError: Error, Equatable, Sendable {
   case deviceIDMismatch(stored: DeviceID, requested: DeviceID)
   case corruptRecord(String)
+  case negativeTimestamp
+  case localSequenceOverflow
 }
 
 public struct SyncCursorState: Equatable, Sendable {
@@ -20,8 +22,8 @@ public struct SyncCursorState: Equatable, Sendable {
 }
 
 public actor LocalDataStore {
-  private let writer: AnyDatabaseWriter
-  private let deviceID: DeviceID
+  let writer: AnyDatabaseWriter
+  let deviceID: DeviceID
 
   // DatabasePool enables WAL and concurrent reads for a file database.
   // Source: https://github.com/groue/GRDB.swift/blob/master/README.md#database-connections
@@ -112,7 +114,7 @@ public actor LocalDataStore {
     }
   }
 
-  private static func fetchCursor(_ db: Database) throws -> SyncCursorState {
+  static func fetchCursor(_ db: Database) throws -> SyncCursorState {
     guard
       let row = try Row.fetchOne(
         db,
