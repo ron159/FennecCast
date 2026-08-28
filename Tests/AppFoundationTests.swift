@@ -13,6 +13,8 @@ final class AppFoundationTests: XCTestCase {
     XCTAssertNil(environment.localDataStore)
     XCTAssertNil(environment.feedLibraryService)
     XCTAssertNil(environment.queueService)
+    XCTAssertNil(environment.playbackEngine)
+    XCTAssertNil(environment.systemPlaybackController)
     XCTAssertNil(environment.startupFailure)
   }
 
@@ -29,6 +31,8 @@ final class AppFoundationTests: XCTestCase {
     XCTAssertNotNil(environment.localDataStore)
     XCTAssertNotNil(environment.feedLibraryService)
     XCTAssertNotNil(environment.queueService)
+    XCTAssertNotNil(environment.playbackEngine)
+    XCTAssertNotNil(environment.systemPlaybackController)
     XCTAssertTrue(
       FileManager.default.fileExists(
         atPath: AppEnvironment.databaseURL(in: applicationSupport).path

@@ -1,6 +1,6 @@
 # Specification: playback
 
-**Status:** Approved by the user's standing authorization to continue without repeated confirmation  
+**Status:** Complete  
 **Sources:** FennecCast whitepaper v1.1, AntennaPod 3.12.0 behavior and Apple AVFoundation/MediaPlayer documentation
 
 ## 1. Purpose
@@ -53,3 +53,14 @@ Provide one local-first playback state source for streamed or downloaded podcast
 - The native AVPlayer driver and system media controls compile for generic iOS Simulator.
 - Background audio mode is present in the built app `Info.plist`.
 - Full package tests, strict formatting, generic iOS build and build-for-testing pass.
+
+## 7. Verification Evidence
+
+Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
+
+- Playback policy, persistence and engine suites: 13 tests passed.
+- Full `FennecCore` package: 83 tests passed.
+- Strict Swift format lint passed for the application and package sources/tests.
+- Generic iOS Simulator build and `build-for-testing` passed with `PlaybackFeature` linked to the app.
+- The built app `Info.plist` contains `UIBackgroundModes = [audio]`.
+- Lock-screen hardware interaction and background continuation still require physical-device validation.

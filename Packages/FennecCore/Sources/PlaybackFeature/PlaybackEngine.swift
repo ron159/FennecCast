@@ -9,6 +9,7 @@ public enum PlaybackEngineError: Error, Equatable, Sendable {
   case noCurrentItem
   case invalidTime
   case generationOverflow
+  case noNextQueueItem
 }
 
 public enum PlaybackDriverEvent: Equatable, Sendable {
@@ -20,13 +21,19 @@ public enum PlaybackDriverEvent: Equatable, Sendable {
   case buffering(generation: UInt64, isBuffering: Bool)
   case ended(generation: UInt64)
   case failed(generation: UInt64)
+  case interruptionBegan(generation: UInt64)
+  case interruptionEnded(generation: UInt64, shouldResume: Bool)
+  case routeChanged(generation: UInt64, shouldPause: Bool)
 
   fileprivate var generation: UInt64 {
     switch self {
     case .progress(let generation, _, _),
       .buffering(let generation, _),
       .ended(let generation),
-      .failed(let generation):
+      .failed(let generation),
+      .interruptionBegan(let generation),
+      .interruptionEnded(let generation, _),
+      .routeChanged(let generation, _):
       generation
     }
   }
@@ -93,6 +100,7 @@ public actor PlaybackEngine {
   private var lastCheckpointMonotonicMilliseconds: Int64 = 0
   private var sleepTimer = PlaybackSleepTimer()
   private var isDriverConnected = false
+  private var snapshotContinuations: [UUID: AsyncStream<PlaybackSnapshot>.Continuation] = [:]
 
   public init(
     store: LocalDataStore,
@@ -129,7 +137,21 @@ public actor PlaybackEngine {
     )
   }
 
+  public func snapshots() -> AsyncStream<PlaybackSnapshot> {
+    let identifier = UUID()
+    return AsyncStream { continuation in
+      snapshotContinuations[identifier] = continuation
+      continuation.yield(snapshot())
+      continuation.onTermination = { [weak self] _ in
+        Task {
+          await self?.removeSnapshotContinuation(identifier)
+        }
+      }
+    }
+  }
+
   public func load(_ episodeKey: EpisodeKey, autoplay: Bool = false) async throws {
+    defer { publishSnapshot() }
     try await loadEpisode(episodeKey, autoplay: autoplay, flushExisting: true)
   }
 
@@ -184,6 +206,7 @@ public actor PlaybackEngine {
       }
     } catch {
       phase = .failed
+      publishSnapshot()
       throw error
     }
   }
@@ -234,6 +257,7 @@ public actor PlaybackEngine {
   }
 
   public func play() async throws {
+    defer { publishSnapshot() }
     guard item != nil else {
       throw PlaybackEngineError.noCurrentItem
     }
@@ -242,6 +266,7 @@ public actor PlaybackEngine {
   }
 
   public func pause() async throws {
+    defer { publishSnapshot() }
     guard item != nil else {
       throw PlaybackEngineError.noCurrentItem
     }
@@ -251,6 +276,7 @@ public actor PlaybackEngine {
   }
 
   public func seek(toMilliseconds requestedPosition: Int64) async throws {
+    defer { publishSnapshot() }
     guard item != nil else {
       throw PlaybackEngineError.noCurrentItem
     }
@@ -283,6 +309,7 @@ public actor PlaybackEngine {
   }
 
   public func setRate(_ newRate: PlaybackRate) async throws {
+    defer { publishSnapshot() }
     guard item != nil else {
       throw PlaybackEngineError.noCurrentItem
     }
@@ -291,6 +318,7 @@ public actor PlaybackEngine {
   }
 
   public func markPlayed() async throws {
+    defer { publishSnapshot() }
     guard item != nil else {
       throw PlaybackEngineError.noCurrentItem
     }
@@ -299,6 +327,7 @@ public actor PlaybackEngine {
   }
 
   public func markUnplayed() async throws {
+    defer { publishSnapshot() }
     guard item != nil else {
       throw PlaybackEngineError.noCurrentItem
     }
@@ -310,6 +339,7 @@ public actor PlaybackEngine {
   }
 
   public func startSleepTimer(_ mode: PlaybackSleepMode) throws {
+    defer { publishSnapshot() }
     try sleepTimer.start(
       mode,
       monotonicNowMilliseconds: monotonicMilliseconds()
@@ -318,6 +348,7 @@ public actor PlaybackEngine {
 
   public func cancelSleepTimer() {
     sleepTimer.cancel()
+    publishSnapshot()
   }
 
   public func flush() async throws {
@@ -325,6 +356,7 @@ public actor PlaybackEngine {
   }
 
   public func stop() async throws {
+    defer { publishSnapshot() }
     try await flushCurrent(intent: .playbackPause)
     await driver.stop()
     phase = .idle
@@ -367,7 +399,43 @@ public actor PlaybackEngine {
       try await finishCurrentEpisode()
     case .failed:
       phase = .failed
+    case .interruptionBegan:
+      if phase == .playing || phase == .buffering {
+        try await pause()
+      }
+    case .interruptionEnded(_, let shouldResume):
+      if shouldResume, phase == .paused {
+        try await play()
+      }
+    case .routeChanged(_, let shouldPause):
+      if shouldPause, phase == .playing || phase == .buffering {
+        try await pause()
+      }
     }
+    publishSnapshot()
+  }
+
+  public func skipToNext() async throws {
+    guard let currentItem = item else {
+      throw PlaybackEngineError.noCurrentItem
+    }
+    try await flushCurrent(intent: .playbackPause)
+    let nextEpisodeKey: EpisodeKey?
+    do {
+      nextEpisodeKey = try await queueService.autoAdvance(
+        completedEpisodeKey: currentItem.episodeKey
+      )
+    } catch QueueServiceError.notCurrentEpisode {
+      throw PlaybackEngineError.noNextQueueItem
+    }
+    guard let nextEpisodeKey else {
+      await driver.pause()
+      phase = .paused
+      publishSnapshot()
+      throw PlaybackEngineError.noNextQueueItem
+    }
+    try await loadEpisode(nextEpisodeKey, autoplay: true, flushExisting: false)
+    publishSnapshot()
   }
 
   private func finishCurrentEpisode() async throws {
@@ -425,5 +493,16 @@ public actor PlaybackEngine {
       hlc: hlc,
       createdAtMilliseconds: timestamp
     )
+  }
+
+  private func publishSnapshot() {
+    let value = snapshot()
+    for continuation in snapshotContinuations.values {
+      continuation.yield(value)
+    }
+  }
+
+  private func removeSnapshotContinuation(_ identifier: UUID) {
+    snapshotContinuations[identifier] = nil
   }
 }

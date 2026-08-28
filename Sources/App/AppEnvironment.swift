@@ -3,6 +3,7 @@ import FeedLibrary
 import Foundation
 import LocalData
 import Observation
+import PlaybackFeature
 import QueueFeature
 
 enum AppStartupFailure: Equatable {
@@ -17,6 +18,8 @@ final class AppEnvironment {
   let localDataStore: LocalDataStore?
   let feedLibraryService: FeedLibraryService?
   let queueService: QueueService?
+  let playbackEngine: PlaybackEngine?
+  let systemPlaybackController: SystemPlaybackController?
   let startupFailure: AppStartupFailure?
 
   init(
@@ -25,6 +28,8 @@ final class AppEnvironment {
     localDataStore: LocalDataStore? = nil,
     feedLibraryService: FeedLibraryService? = nil,
     queueService: QueueService? = nil,
+    playbackEngine: PlaybackEngine? = nil,
+    systemPlaybackController: SystemPlaybackController? = nil,
     startupFailure: AppStartupFailure? = nil
   ) {
     self.appName = appName
@@ -32,6 +37,8 @@ final class AppEnvironment {
     self.localDataStore = localDataStore
     self.feedLibraryService = feedLibraryService
     self.queueService = queueService
+    self.playbackEngine = playbackEngine
+    self.systemPlaybackController = systemPlaybackController
     self.startupFailure = startupFailure
   }
 
@@ -63,10 +70,18 @@ final class AppEnvironment {
         withIntermediateDirectories: true
       )
       let store = try LocalDataStore.openOrCreate(path: databaseURL.path)
+      let queueService = QueueService(store: store)
+      let playbackEngine = PlaybackEngine(
+        store: store,
+        queueService: queueService,
+        driver: AVPlayerPlaybackDriver()
+      )
       return AppEnvironment(
         localDataStore: store,
         feedLibraryService: FeedLibraryService(store: store),
-        queueService: QueueService(store: store)
+        queueService: queueService,
+        playbackEngine: playbackEngine,
+        systemPlaybackController: SystemPlaybackController(engine: playbackEngine)
       )
     } catch {
       return AppEnvironment(startupFailure: .localDatabase)

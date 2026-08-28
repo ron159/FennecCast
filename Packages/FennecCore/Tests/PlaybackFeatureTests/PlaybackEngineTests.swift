@@ -178,6 +178,31 @@ struct PlaybackEngineTests {
   }
 
   @Test
+  func audioInterruptionAndHeadphoneDisconnectControlPlayback() async throws {
+    let fixture = try await Fixture.make()
+    let driver = DriverSpy()
+    let engine = PlaybackEngine(
+      store: fixture.store,
+      queueService: fixture.queue,
+      driver: driver,
+      timeMilliseconds: { 45_000 }
+    )
+    try await engine.load(fixture.keys[0], autoplay: true)
+    let generation = try #require(await driver.lastLoad()?.generation)
+
+    try await engine.handleDriverEvent(.interruptionBegan(generation: generation))
+    #expect((await engine.snapshot()).phase == .paused)
+    try await engine.handleDriverEvent(
+      .interruptionEnded(generation: generation, shouldResume: true)
+    )
+    #expect((await engine.snapshot()).phase == .playing)
+    try await engine.handleDriverEvent(
+      .routeChanged(generation: generation, shouldPause: true)
+    )
+    #expect((await engine.snapshot()).phase == .paused)
+  }
+
+  @Test
   func rejectsMissingEpisodeAndMissingNetworkEnclosure() async throws {
     let fixture = try await Fixture.make(includeMissingEnclosure: true)
     let engine = PlaybackEngine(

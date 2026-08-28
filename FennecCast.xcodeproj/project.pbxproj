@@ -17,6 +17,7 @@
 		A10000000000000000000008 /* LocalData in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000003 /* LocalData */; };
 		A10000000000000000000009 /* FeedLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000004 /* FeedLibrary */; };
 		A1000000000000000000000A /* QueueFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000005 /* QueueFeature */; };
+		A1000000000000000000000B /* PlaybackFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000006 /* PlaybackFeature */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 				A10000000000000000000008 /* LocalData in Frameworks */,
 				A10000000000000000000009 /* FeedLibrary in Frameworks */,
 				A1000000000000000000000A /* QueueFeature in Frameworks */,
+				A1000000000000000000000B /* PlaybackFeature in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,6 +139,7 @@
 				AA0000000000000000000003 /* LocalData */,
 				AA0000000000000000000004 /* FeedLibrary */,
 				AA0000000000000000000005 /* QueueFeature */,
+				AA0000000000000000000006 /* PlaybackFeature */,
 			);
 			productName = FennecCast;
 			productReference = A20000000000000000000004 /* FennecCast.app */;
@@ -278,6 +281,11 @@
 			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
 			productName = QueueFeature;
 		};
+		AA0000000000000000000006 /* PlaybackFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
+			productName = PlaybackFeature;
+		};
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -323,6 +331,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = FennecCast;
+				INFOPLIST_FILE = Sources/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -348,6 +357,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = FennecCast;
+				INFOPLIST_FILE = Sources/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

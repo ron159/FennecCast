@@ -11,8 +11,8 @@
 - [x] Add driver-backed engine tests; observe RED.
 - [x] Implement load/resume, play/pause, seek/skip/rate and periodic checkpoints.
 - [x] Implement completion, queue advance and sleep timers.
-- [ ] Implement AVPlayer/audio-session adapter and stale-event isolation.
-- [ ] Implement Now Playing and remote-command integration.
+- [x] Implement AVPlayer/audio-session adapter and stale-event isolation.
+- [x] Implement Now Playing and remote-command integration.
 
 ## Download persistence and service
 
