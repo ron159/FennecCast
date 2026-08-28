@@ -1,6 +1,6 @@
 # Specification: local-data
 
-**Status:** Approved by the user's standing authorization to continue without repeated confirmation  
+**Status:** Complete  
 **Sources:** FennecCast whitepaper v1.1 and GRDB 7.11.1 official documentation
 
 ## 1. Purpose
@@ -71,3 +71,14 @@ Provide FennecCast's migrated local SQLite database and the atomic persistence b
 ## 8. Compatibility Boundary
 
 The initial schema migration is append-only after release. Later schema changes require a new migration identifier. App schema and StateSync protocol version remain independent.
+
+## 9. Verification Evidence
+
+Verified on 2026-08-29 with Xcode 27 beta, Swift 6.4 and GRDB 7.11.1:
+
+- `xcrun swift test --package-path Packages/FennecCore`: 52 tests passed, including 17 LocalData tests and 35 CoreContracts tests.
+- `xcrun swift-format lint --strict --recursive Sources Tests Packages/FennecCore/Sources Packages/FennecCore/Tests`: passed.
+- Generic iOS Simulator `build`: passed with `CoreContracts`, `LocalData` and GRDB in the application dependency graph.
+- Generic iOS Simulator `build-for-testing`: app and XCTest bundle compiled successfully.
+- Forced SQLite failures prove local Outbox writes and remote response application roll back atomically.
+- JSON catalog validation, `git diff --check`, focused secret scan and adjacent Android checkout audit passed.

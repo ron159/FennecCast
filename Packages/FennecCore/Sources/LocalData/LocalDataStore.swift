@@ -43,16 +43,31 @@ public actor LocalDataStore {
     let writer = AnyDatabaseWriter(
       try DatabasePool(path: path, configuration: configuration)
     )
-    try Self.prepare(writer: writer, deviceID: deviceID)
+    _ = try Self.prepare(writer: writer, deviceID: deviceID)
     self.writer = writer
     self.deviceID = deviceID
+  }
+
+  public static func openOrCreate(path: String) throws -> LocalDataStore {
+    var configuration = Configuration()
+    configuration.foreignKeysEnabled = true
+    let writer = AnyDatabaseWriter(
+      try DatabasePool(path: path, configuration: configuration)
+    )
+    let proposedDeviceID = try DeviceID("ios-\(UUID().uuidString.lowercased())")
+    let deviceID = try prepare(
+      writer: writer,
+      deviceID: proposedDeviceID,
+      reuseStoredDeviceID: true
+    )
+    return LocalDataStore(writer: writer, deviceID: deviceID)
   }
 
   public static func inMemory(deviceID: DeviceID) throws -> LocalDataStore {
     var configuration = Configuration()
     configuration.foreignKeysEnabled = true
     let writer = AnyDatabaseWriter(try DatabaseQueue(configuration: configuration))
-    try prepare(writer: writer, deviceID: deviceID)
+    _ = try prepare(writer: writer, deviceID: deviceID)
     return LocalDataStore(writer: writer, deviceID: deviceID)
   }
 
@@ -93,11 +108,15 @@ public actor LocalDataStore {
     self.deviceID = deviceID
   }
 
-  private static func prepare(writer: AnyDatabaseWriter, deviceID: DeviceID) throws {
+  private static func prepare(
+    writer: AnyDatabaseWriter,
+    deviceID: DeviceID,
+    reuseStoredDeviceID: Bool = false
+  ) throws -> DeviceID {
     try DatabaseSchema.migrator.migrate(writer)
     // GRDB `write` wraps updates in a transaction.
     // Source: https://github.com/groue/GRDB.swift/blob/master/GRDB/Core/DatabaseWriter.swift
-    try writer.write { db in
+    return try writer.write { db in
       let storedValue = try String.fetchOne(
         db,
         sql: "SELECT device_id FROM sync_cursor WHERE singleton_id = 1"
@@ -110,9 +129,13 @@ public actor LocalDataStore {
           sql: "UPDATE sync_cursor SET device_id = ? WHERE singleton_id = 1",
           arguments: [deviceID.rawValue]
         )
+        return deviceID
       } else {
         guard let storedDeviceID = DeviceID(rawValue: storedValue) else {
           throw LocalDataError.corruptRecord("invalid stored device id")
+        }
+        if reuseStoredDeviceID {
+          return storedDeviceID
         }
         guard storedDeviceID == deviceID else {
           throw LocalDataError.deviceIDMismatch(
@@ -120,6 +143,7 @@ public actor LocalDataStore {
             requested: deviceID
           )
         }
+        return storedDeviceID
       }
     }
   }

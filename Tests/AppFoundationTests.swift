@@ -10,6 +10,17 @@ final class AppFoundationTests: XCTestCase {
 
     XCTAssertEqual(environment.appName, "FennecCast")
     XCTAssertEqual(environment.stateSyncProtocolVersion, 1)
+    XCTAssertNil(environment.localDataStore)
+    XCTAssertNil(environment.startupFailure)
+  }
+
+  func testDatabaseUsesAnApplicationSupportSubdirectory() {
+    let applicationSupport = URL(fileURLWithPath: "/tmp/Application Support")
+
+    XCTAssertEqual(
+      AppEnvironment.databaseURL(in: applicationSupport).path,
+      "/tmp/Application Support/FennecCast/FennecCast.sqlite"
+    )
   }
 
   func testEnvironmentPreservesInjectedAppName() {

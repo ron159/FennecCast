@@ -64,6 +64,22 @@ struct DatabaseMigrationTests {
     }
   }
 
+  @Test
+  func openOrCreateGeneratesAndReusesTheDatabaseDeviceIdentity() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let path = directory.appendingPathComponent("fenneccast.sqlite").path
+
+    let first = try LocalDataStore.openOrCreate(path: path)
+    let firstIdentity = try await first.syncCursor().deviceID
+    #expect(!firstIdentity.rawValue.isEmpty)
+    try await first.close()
+
+    let reopened = try LocalDataStore.openOrCreate(path: path)
+    #expect(try await reopened.syncCursor().deviceID == firstIdentity)
+    try await reopened.close()
+  }
+
   private func temporaryDirectory() throws -> URL {
     let url = FileManager.default.temporaryDirectory
       .appendingPathComponent("FennecCast-\(UUID().uuidString)", isDirectory: true)

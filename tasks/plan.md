@@ -14,19 +14,19 @@ Add GRDB 7.11.1 to `FennecCore`, migrate the complete local schema, implement at
 
 ## Tasks
 
-- [ ] Task 1: Pin GRDB and create the initial nine-table migration from failing schema tests
-- [ ] Task 2: Implement local state plus Outbox atomic transactions from failing tests
-- [ ] Task 3: Implement pending reads and remote response/cursor transactions from failing tests
-- [ ] Task 4: Implement forward-only aliases from failing tests
-- [ ] Task 5: Link `LocalData` to the app and complete module verification
+- [x] Task 1: Pin GRDB and create the initial nine-table migration from failing schema tests
+- [x] Task 2: Implement local state plus Outbox atomic transactions from failing tests
+- [x] Task 3: Implement pending reads and remote response/cursor transactions from failing tests
+- [x] Task 4: Implement forward-only aliases from failing tests
+- [x] Task 5: Link `LocalData` to the app and complete module verification
 
 ## Checkpoints
 
-- [ ] Every behavior slice records RED before production implementation.
-- [ ] Database failure injection proves rollback rather than partial state.
-- [ ] Full package tests and format lint pass.
-- [ ] Generic iOS build and build-for-testing pass.
-- [ ] Adjacent Android checkout remains unchanged.
+- [x] Every behavior slice records RED before production implementation.
+- [x] Database failure injection proves rollback rather than partial state.
+- [x] Full package tests and format lint pass.
+- [x] Generic iOS build and build-for-testing pass.
+- [x] Adjacent Android checkout remains unchanged.
 
 ## Risks and Mitigations
 

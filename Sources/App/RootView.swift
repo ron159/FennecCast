@@ -5,14 +5,24 @@ struct RootView: View {
 
   var body: some View {
     NavigationStack {
-      ContentUnavailableView {
-        Label {
-          Text(LocalizedStringKey(environment.appName))
-        } icon: {
-          Image(systemName: "headphones")
+      Group {
+        if environment.startupFailure == nil {
+          ContentUnavailableView {
+            Label {
+              Text(LocalizedStringKey(environment.appName))
+            } icon: {
+              Image(systemName: "headphones")
+            }
+          } description: {
+            Text("foundation.status")
+          }
+        } else {
+          ContentUnavailableView {
+            Label("startup.database.title", systemImage: "externaldrive.badge.exclamationmark")
+          } description: {
+            Text("startup.database.message")
+          }
         }
-      } description: {
-        Text("foundation.status")
       }
       .navigationTitle(Text(LocalizedStringKey(environment.appName)))
     }

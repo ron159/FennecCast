@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct FennecCastApp: App {
-  @State private var environment = AppEnvironment()
+  @State private var environment = AppEnvironment.live()
 
   var body: some Scene {
     WindowGroup {

@@ -34,6 +34,40 @@
           }
         }
       }
+    },
+    "startup.database.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FennecCast could not open its local library. Restart the app and check available storage."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FennecCast 无法打开本地资料库。请重启应用并检查可用存储空间。"
+          }
+        }
+      }
+    },
+    "startup.database.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local Library Unavailable"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地资料库不可用"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
