@@ -125,6 +125,22 @@ public struct StoredEpisode: Equatable, Sendable {
   }
 }
 
+public struct StoredQueueItem: Equatable, Sendable {
+  public let state: VersionedState<QueueEntryState>
+  public let episode: StoredEpisode?
+
+  public var episodeKey: EpisodeKey { state.value.episodeKey }
+  public var orderToken: FractionalIndex { state.value.orderToken }
+
+  public init(
+    state: VersionedState<QueueEntryState>,
+    episode: StoredEpisode?
+  ) {
+    self.state = state
+    self.episode = episode
+  }
+}
+
 public enum EpisodeListFilter: Equatable, Sendable {
   case all
   case inbox

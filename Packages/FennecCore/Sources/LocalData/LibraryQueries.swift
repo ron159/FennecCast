@@ -103,6 +103,39 @@ extension LocalDataStore {
     }
   }
 
+  public func libraryEpisode(for episodeKey: EpisodeKey) async throws -> StoredEpisode? {
+    try await writer.read { db in
+      try Row.fetchOne(
+        db,
+        sql: """
+          SELECT
+            e.episode_key,
+            e.feed_key,
+            e.guid,
+            e.enclosure_url,
+            e.link_url,
+            e.title,
+            e.publication_date_ms,
+            e.duration_ms,
+            e.description_html,
+            e.mime_type,
+            f.title AS feed_title,
+            COALESCE(s.inbox, 0) AS inbox,
+            COALESCE(s.favorite, 0) AS favorite,
+            COALESCE(s.archived, 0) AS archived,
+            COALESCE(s.played, 0) AS played,
+            COALESCE(s.position_ms, 0) AS position_ms,
+            COALESCE(s.played_duration_ms, 0) AS played_duration_ms
+          FROM episodes e
+          JOIN feeds f ON f.feed_key = e.feed_key
+          LEFT JOIN episode_state s ON s.episode_key = e.episode_key
+          WHERE e.episode_key = ?
+          """,
+        arguments: [episodeKey.rawValue]
+      ).map(Self.storedEpisode)
+    }
+  }
+
   public func setInbox(_ isInbox: Bool, for episodeKey: EpisodeKey) async throws {
     try await updateLocalEpisodeFlag("inbox", value: isInbox, episodeKey: episodeKey)
   }
@@ -179,7 +212,7 @@ extension LocalDataStore {
     )
   }
 
-  private static func storedEpisode(_ row: Row) throws -> StoredEpisode {
+  static func storedEpisode(_ row: Row) throws -> StoredEpisode {
     StoredEpisode(
       metadata: EpisodeMetadata(
         episodeKey: EpisodeKey(rawValue: row["episode_key"]),

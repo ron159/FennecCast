@@ -23,6 +23,29 @@ extension LocalDataStore {
     }
   }
 
+  public func recordLocalMutations(
+    _ payloads: [SyncPayload],
+    hlc: HLCTimestamp,
+    createdAtMilliseconds: Int64
+  ) async throws -> [SyncMutation] {
+    guard createdAtMilliseconds >= 0 else {
+      throw LocalDataError.negativeTimestamp
+    }
+    let deviceID = self.deviceID
+
+    return try await writer.write { db in
+      try payloads.map { payload in
+        try Self.recordLocalMutation(
+          payload,
+          hlc: hlc,
+          deviceID: deviceID,
+          createdAtMilliseconds: createdAtMilliseconds,
+          db: db
+        )
+      }
+    }
+  }
+
   static func recordLocalMutation(
     _ payload: SyncPayload,
     hlc: HLCTimestamp,

@@ -13,18 +13,18 @@ Build the RSS/Atom parser and library persistence first, add bounded conditional
 
 ## Tasks
 
-- [ ] Task 1: Add `FeedLibrary` models and RSS/Atom parser from failing golden fixtures
-- [ ] Task 2: Add feed/episode metadata transactions and library queries from failing database tests
-- [ ] Task 3: Add bounded conditional HTTP refresh and subscription workflows from stubbed fetch tests
-- [ ] Task 4: Add atomic batch mutations and queue repository from failing operation/rebase tests
+- [x] Task 1: Add `FeedLibrary` models and RSS/Atom parser from failing golden fixtures
+- [x] Task 2: Add feed/episode metadata transactions and library queries from failing database tests
+- [x] Task 3: Add bounded conditional HTTP refresh and subscription workflows from stubbed fetch tests
+- [x] Task 4: Add atomic batch mutations and queue repository from failing operation/rebase tests
 - [ ] Task 5: Link services into the app and complete both-module verification
 
 ## Checkpoints
 
-- [ ] Every behavior slice records RED before production implementation.
-- [ ] Feed parse/fetch failures leave the database unchanged.
-- [ ] Queue rebase and its Outbox operations are atomic.
-- [ ] Full package tests and format lint pass.
+- [x] Every completed behavior slice records RED before production implementation.
+- [x] Feed parse/fetch failures leave the database unchanged.
+- [x] Queue rebase and its Outbox operations are atomic.
+- [x] Full package tests and format lint pass for the package implementation.
 - [ ] Generic iOS build and build-for-testing pass.
 - [ ] Adjacent Android checkout remains unchanged.
 

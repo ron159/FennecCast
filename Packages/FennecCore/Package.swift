@@ -12,6 +12,7 @@ let package = Package(
     .library(name: "CoreContracts", targets: ["CoreContracts"]),
     .library(name: "LocalData", targets: ["LocalData"]),
     .library(name: "FeedLibrary", targets: ["FeedLibrary"]),
+    .library(name: "QueueFeature", targets: ["QueueFeature"]),
   ],
   dependencies: [
     .package(
@@ -32,6 +33,10 @@ let package = Package(
       name: "FeedLibrary",
       dependencies: ["CoreContracts", "LocalData"]
     ),
+    .target(
+      name: "QueueFeature",
+      dependencies: ["CoreContracts", "LocalData"]
+    ),
     .testTarget(name: "CoreContractsTests", dependencies: ["CoreContracts"]),
     .testTarget(
       name: "LocalDataTests",
@@ -44,6 +49,15 @@ let package = Package(
     .testTarget(
       name: "FeedLibraryTests",
       dependencies: ["CoreContracts", "FeedLibrary", "LocalData"]
+    ),
+    .testTarget(
+      name: "QueueFeatureTests",
+      dependencies: [
+        "CoreContracts",
+        "LocalData",
+        "QueueFeature",
+        .product(name: "GRDB", package: "GRDB.swift"),
+      ]
     ),
   ]
 )
