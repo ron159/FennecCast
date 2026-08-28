@@ -92,6 +92,7 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
   }
 
   private let sourceURL: URL
+  private let valueParser = FeedValueParser()
   private var stack: [Element] = []
   private var format: FeedFormat?
   private var feedTitle: String?
@@ -131,13 +132,15 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
     qualifiedName qName: String?,
     attributes attributeDict: [String: String] = [:]
   ) {
+    var attributes: [String: String] = [:]
+    for (key, value) in attributeDict {
+      attributes[key.lowercased()] = value
+    }
     let element = Element(
       name: elementName.lowercased(),
       namespace: (namespaceURI ?? "").lowercased(),
       qualifiedName: (qName ?? elementName).lowercased(),
-      attributes: Dictionary(
-        uniqueKeysWithValues: attributeDict.map { ($0.key.lowercased(), $0.value) }
-      )
+      attributes: attributes
     )
     if stack.isEmpty {
       switch element.name {
@@ -239,11 +242,11 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
         episode?.linkURL = networkURL(value)
       }
     case "pubdate", "published":
-      episode?.publicationDate = value.flatMap(FeedValueParser.date)
+      episode?.publicationDate = value.flatMap(valueParser.date)
     case "updated" where episode?.publicationDate == nil:
-      episode?.publicationDate = value.flatMap(FeedValueParser.date)
+      episode?.publicationDate = value.flatMap(valueParser.date)
     case "duration" where element.isITunes:
-      episode?.durationMilliseconds = value.flatMap(FeedValueParser.durationMilliseconds)
+      episode?.durationMilliseconds = value.flatMap(valueParser.durationMilliseconds)
     case "encoded" where element.isContentEncoded:
       episode?.setSummary(value, priority: 2)
     case "description", "summary", "content":
@@ -302,29 +305,40 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
   }
 }
 
-private enum FeedValueParser {
-  static func date(_ value: String) -> Date? {
-    let fractional = ISO8601DateFormatter()
-    fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+private final class FeedValueParser {
+  private let fractional: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter
+  }()
+
+  private let iso: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter
+  }()
+
+  private let rssFormatters: [DateFormatter] = [
+    "EEE, dd MMM yyyy HH:mm:ss zzz",
+    "EEE, d MMM yyyy HH:mm:ss zzz",
+    "dd MMM yyyy HH:mm:ss zzz",
+    "d MMM yyyy HH:mm:ss zzz",
+  ].map { format in
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.dateFormat = format
+    return formatter
+  }
+
+  func date(_ value: String) -> Date? {
     if let date = fractional.date(from: value) {
       return date
     }
-    let iso = ISO8601DateFormatter()
-    iso.formatOptions = [.withInternetDateTime]
     if let date = iso.date(from: value) {
       return date
     }
-
-    for format in [
-      "EEE, dd MMM yyyy HH:mm:ss zzz",
-      "EEE, d MMM yyyy HH:mm:ss zzz",
-      "dd MMM yyyy HH:mm:ss zzz",
-      "d MMM yyyy HH:mm:ss zzz",
-    ] {
-      let formatter = DateFormatter()
-      formatter.locale = Locale(identifier: "en_US_POSIX")
-      formatter.timeZone = TimeZone(secondsFromGMT: 0)
-      formatter.dateFormat = format
+    for formatter in rssFormatters {
       if let date = formatter.date(from: value) {
         return date
       }
@@ -332,7 +346,7 @@ private enum FeedValueParser {
     return nil
   }
 
-  static func durationMilliseconds(_ value: String) -> Int64? {
+  func durationMilliseconds(_ value: String) -> Int64? {
     let components = value.split(separator: ":", omittingEmptySubsequences: false)
     let seconds: Double
     switch components.count {
