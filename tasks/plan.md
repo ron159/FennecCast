@@ -1,75 +1,53 @@
-# Implementation Plan: app-foundation
+# Implementation Plan: core-contracts
 
 ## Overview
 
-建立 FennecCast 的独立 Git 与原生 iOS 工程基础，使一个使用显式 `AppEnvironment` 的 SwiftUI 根界面可以在 Xcode 27 下无签名构建，并让英文、简体中文资源和 XCTest 目标进入同一共享 scheme。范围严格限定在 `SPEC-app-foundation.md`，不实现播客业务。
+Build the pure Swift contract layer described in `SPEC-core-contracts.md`, verify it with executable macOS Swift Package tests, then link the package into the iOS app and run the generic Simulator build.
 
 ## Architecture Decisions
 
-- 使用检查入库的标准 `.xcodeproj` 和 shared scheme，不引入 XcodeGen、Tuist 或 CocoaPods。
-- App target 使用 Swift 6 language mode、iOS 17 deployment target 和 `com.ron159.FennecCast` Bundle Identifier。
-- 根界面只依赖显式创建的 `AppEnvironment`，为后续模块保留清晰组合入口。
-- Foundation 阶段使用 Apple SDK 与 XCTest，不引入第三方运行时依赖。
-- 本机没有 Simulator Runtime；当前门禁是通用 Simulator `build` 与 `build-for-testing`，真实 `test` 留作 Runtime 安装后的补充门禁。
+- Keep contracts in `Packages/FennecCore` as a local Swift Package product named `CoreContracts`.
+- Use Foundation and CryptoKit only.
+- Keep persistence, HTTP and UI adapters outside the package.
+- Encode polymorphic payloads explicitly so an entity/payload mismatch cannot enter persistence.
+- Use fixed-width hexadecimal fractional tokens; do not add a general CRDT dependency.
 
 ## Dependency Graph
 
 ```text
-approved specification
-    -> repository safeguards and licensing
-        -> Xcode app slice
-            -> localized resources
-                -> XCTest target
-                    -> full foundation verification
+canonical identity ─┐
+HLC + version stamp ├─> sync wire models ─> conflict resolution
+fractional index ───┘
+                all contracts ─> local Xcode package link
 ```
 
 ## Task List
 
-### Phase 1: Repository foundation
+- [ ] Task 1: Scaffold the local package and implement canonical identity from failing tests
+- [ ] Task 2: Implement HLC and version ordering from failing tests
+- [ ] Task 3: Implement fractional queue tokens from failing tests
+- [ ] Task 4: Implement StateSync v1 models and golden JSON coding from failing tests
+- [ ] Task 5: Implement subscription, playback and queue conflict resolution from failing tests
+- [ ] Task 6: Link `CoreContracts` into the iOS target and close verification
 
-- [x] Task 1: Initialize the independent repository and record approved artifacts
-- [x] Task 2: Add licensing, notices, README and repository safeguards
+## Checkpoints
 
-### Checkpoint: Repository foundation
-
-- [x] `git status -sb` shows only intentional FennecCast files
-- [x] `git diff --check` reports no whitespace errors
-- [x] `../AntennaPod/` has not been modified by this module
-
-### Phase 2: Runnable app slice
-
-- [x] Task 3: Add the minimal SwiftUI app target and shared scheme
-- [x] Task 4: Add English and Simplified Chinese resources
-
-### Checkpoint: Runnable app
-
-- [x] Generic iOS Simulator build succeeds without signing
-- [x] Root view receives an explicit `AppEnvironment`
-- [x] User-visible foundation strings come from the String Catalog
-
-### Phase 3: Testable foundation
-
-- [x] Task 5: Add the XCTest target and app-foundation tests
-- [x] Task 6: Run the complete foundation verification and close the module
-
-### Checkpoint: app-foundation complete
-
-- [x] Generic iOS Simulator build succeeds
-- [x] Generic iOS Simulator build-for-testing succeeds
-- [x] `swift-format lint --strict --recursive Sources Tests` succeeds
-- [x] The Git history contains small, descriptive, independently revertible commits
-- [x] Every success criterion in `SPEC-app-foundation.md` has current evidence
+- [ ] Each behavior slice has observed RED then passing focused tests.
+- [ ] Full package tests and format lint pass.
+- [ ] Generic iOS Simulator build succeeds with the package linked.
+- [ ] Changes remain inside `FennecCast/`; the adjacent Android checkout is unchanged.
+- [ ] Commits are small, descriptive and independently revertible.
 
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Hand-authored Xcode project is rejected by Xcode 27 | High | Keep the project minimal and run the generic Simulator build immediately in Task 3 |
-| No Simulator Runtime is installed | Medium | Compile the XCTest bundle with `build-for-testing`; do not claim runtime test execution |
-| Xcode beta changes project defaults | Medium | Set deployment target, Swift version and signing behavior explicitly in checked-in build settings |
-| Foundation grows into business implementation | Medium | Restrict files and acceptance criteria to `SPEC-app-foundation.md` |
-| Personal signing needs a different Bundle Identifier | Low | Keep the identifier in one target build setting so it is easy to change later |
+| URL normalization differs across platforms | High | Specify components precisely and cover case, default port, fragment and query ordering fixtures |
+| HLC edge cases produce divergent ordering | High | Inject physical time and test local, remote and concurrent branches |
+| Polymorphic JSON accepts invalid payloads | High | Use an enum payload with custom entity-driven Codable validation |
+| Fractional token space is exhausted | Medium | Return a typed error and provide deterministic rebase |
+| Local package is not actually linked by Xcode | Medium | Add an explicit package product dependency and run a full generic Simulator build |
 
 ## Open Questions
 
-- None blocking. Runtime XCTest execution remains pending until an iOS Simulator Runtime is installed.
+None blocking. The user has authorized uninterrupted implementation and self-review.
