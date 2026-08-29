@@ -147,6 +147,95 @@ extension LocalDataStore {
     }
   }
 
+  public func automaticDownloadCandidates(
+    feedKey: FeedKey,
+    episodeKeys: [EpisodeKey],
+    limit: Int
+  ) async throws -> [EpisodeKey] {
+    guard (1...100).contains(limit), episodeKeys.count <= 1_000 else {
+      throw LocalDataError.invalidQueryLimit
+    }
+    guard !episodeKeys.isEmpty else { return [] }
+    let requestedKeys = Set(episodeKeys)
+    return try await writer.read { db in
+      let rows = try Row.fetchAll(
+        db,
+        sql: """
+          SELECT e.episode_key
+          FROM episodes e
+          LEFT JOIN episode_state s ON s.episode_key = e.episode_key
+          LEFT JOIN media_local m ON m.episode_key = e.episode_key
+          WHERE e.feed_key = ?
+            AND e.enclosure_url IS NOT NULL
+            AND COALESCE(s.played, 0) = 0
+            AND COALESCE(s.archived, 0) = 0
+            AND (m.episode_key IS NULL OR m.download_state = 'not_requested')
+          ORDER BY e.publication_date_ms IS NULL ASC,
+            e.publication_date_ms DESC,
+            e.episode_key ASC
+          LIMIT 1000
+          """,
+        arguments: [feedKey.rawValue]
+      )
+      return rows.compactMap { row -> EpisodeKey? in
+        let key = EpisodeKey(rawValue: row["episode_key"])
+        return requestedKeys.contains(key) ? key : nil
+      }.prefix(limit).map { $0 }
+    }
+  }
+
+  public func downloadCleanupCandidates(
+    feedKey: FeedKey,
+    autoDeletePlayed: Bool,
+    retentionLimit: Int?,
+    limit: Int
+  ) async throws -> [EpisodeKey] {
+    guard
+      (1...1_000).contains(limit),
+      retentionLimit.map({ (1...100).contains($0) }) ?? true
+    else {
+      throw LocalDataError.invalidQueryLimit
+    }
+    guard autoDeletePlayed || retentionLimit != nil else { return [] }
+
+    return try await writer.read { db in
+      let rows = try Row.fetchAll(
+        db,
+        sql: """
+          SELECT
+            e.episode_key,
+            COALESCE(s.played, 0) AS played,
+            COALESCE(s.favorite, 0) AS favorite,
+            EXISTS(
+              SELECT 1 FROM queue_entries q
+              WHERE q.episode_key = e.episode_key AND q.present = 1
+            ) AS queued
+          FROM episodes e
+          JOIN media_local m ON m.episode_key = e.episode_key
+          LEFT JOIN episode_state s ON s.episode_key = e.episode_key
+          WHERE e.feed_key = ? AND m.download_state = 'completed'
+          ORDER BY e.publication_date_ms IS NULL ASC,
+            e.publication_date_ms DESC,
+            e.episode_key ASC
+          LIMIT ?
+          """,
+        arguments: [feedKey.rawValue, limit]
+      )
+      var candidates: [EpisodeKey] = []
+      for (index, row) in rows.enumerated() {
+        let favorite: Bool = row["favorite"]
+        let queued: Bool = row["queued"]
+        guard !favorite, !queued else { continue }
+        let played: Bool = row["played"]
+        let exceedsRetention = retentionLimit.map { index >= $0 } ?? false
+        if (autoDeletePlayed && played) || exceedsRetention {
+          candidates.append(EpisodeKey(rawValue: row["episode_key"]))
+        }
+      }
+      return candidates.reversed()
+    }
+  }
+
   private static func normalizedFeedPreferences(
     _ preferences: FeedPreferences
   ) throws -> FeedPreferences {

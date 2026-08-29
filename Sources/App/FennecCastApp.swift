@@ -85,6 +85,7 @@ final class FennecCastAppDelegate: NSObject, UIApplicationDelegate {
   private var stateSyncEngine: StateSyncEngine?
   private var localDataStore: LocalDataStore?
   private var feedLibraryService: FeedLibraryService?
+  private var podcastAutomationService: PodcastAutomationService?
 
   func application(
     _ application: UIApplication,
@@ -95,7 +96,8 @@ final class FennecCastAppDelegate: NSObject, UIApplicationDelegate {
     attachStateSyncEngine(environment.stateSyncEngine)
     attachFeedRefresh(
       store: environment.localDataStore,
-      service: environment.feedLibraryService
+      service: environment.feedLibraryService,
+      automationService: environment.podcastAutomationService
     )
     BGTaskScheduler.shared.register(
       forTaskWithIdentifier: Self.appRefreshIdentifier,
@@ -121,10 +123,12 @@ final class FennecCastAppDelegate: NSObject, UIApplicationDelegate {
 
   func attachFeedRefresh(
     store: LocalDataStore?,
-    service: FeedLibraryService?
+    service: FeedLibraryService?,
+    automationService: PodcastAutomationService?
   ) {
     localDataStore = store
     feedLibraryService = service
+    podcastAutomationService = automationService
   }
 
   func scheduleStateSyncRefresh() {
@@ -201,12 +205,19 @@ final class FennecCastAppDelegate: NSObject, UIApplicationDelegate {
     var succeeded = true
     for feed in staleFeeds {
       do {
-        _ = try await feedLibraryService.refresh(feedKey: feed.feedKey)
+        let outcome = try await feedLibraryService.refresh(feedKey: feed.feedKey)
+        if case .updated(let result) = outcome {
+          _ = await podcastAutomationService?.handleRefresh(
+            feedKey: feed.feedKey,
+            insertedEpisodeKeys: result.insertedEpisodeKeys
+          )
+        }
       } catch {
         succeeded = false
       }
       if Task.isCancelled { return false }
     }
+    _ = await podcastAutomationService?.runMaintenance()
     return succeeded
   }
 }

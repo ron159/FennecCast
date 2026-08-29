@@ -28,6 +28,7 @@ final class AppEnvironment {
   let playbackEngine: PlaybackEngine?
   let systemPlaybackController: SystemPlaybackController?
   let downloadManager: DownloadManager?
+  let podcastAutomationService: PodcastAutomationService?
   let backgroundDownloadTransport: BackgroundDownloadTransport?
   let startupFailure: AppStartupFailure?
 
@@ -43,6 +44,7 @@ final class AppEnvironment {
     playbackEngine: PlaybackEngine? = nil,
     systemPlaybackController: SystemPlaybackController? = nil,
     downloadManager: DownloadManager? = nil,
+    podcastAutomationService: PodcastAutomationService? = nil,
     backgroundDownloadTransport: BackgroundDownloadTransport? = nil,
     startupFailure: AppStartupFailure? = nil
   ) {
@@ -57,6 +59,7 @@ final class AppEnvironment {
     self.playbackEngine = playbackEngine
     self.systemPlaybackController = systemPlaybackController
     self.downloadManager = downloadManager
+    self.podcastAutomationService = podcastAutomationService
     self.backgroundDownloadTransport = backgroundDownloadTransport
     self.startupFailure = startupFailure
   }
@@ -116,6 +119,10 @@ final class AppEnvironment {
         transport: backgroundDownloadTransport,
         storageRoot: storageRoot
       )
+      let podcastAutomationService = PodcastAutomationService(
+        store: store,
+        downloadManager: downloadManager
+      )
       let playbackEngine = PlaybackEngine(
         store: store,
         queueService: queueService,
@@ -141,6 +148,7 @@ final class AppEnvironment {
         playbackEngine: playbackEngine,
         systemPlaybackController: SystemPlaybackController(engine: playbackEngine),
         downloadManager: downloadManager,
+        podcastAutomationService: podcastAutomationService,
         backgroundDownloadTransport: backgroundDownloadTransport
       )
     } catch {

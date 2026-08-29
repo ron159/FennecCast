@@ -129,6 +129,93 @@ struct AdvancedLibraryTests {
     #expect(statistics.feeds[0].completedEpisodeCount == 1)
     #expect(statistics.feeds[0].downloadedBytes == 2_048)
   }
+
+  @Test
+  func automaticDownloadCandidatesExcludeExistingPlayedAndArchivedEpisodes() async throws {
+    let fixture = try await Fixture.make(episodeCount: 6)
+    try await fixture.store.setEpisodeArchived(true, for: fixture.episodeKeys[0])
+    _ = try await fixture.store.recordPlaybackMutation(
+      episodeKey: fixture.episodeKeys[1],
+      intent: .markPlayed,
+      positionMilliseconds: 60_000,
+      durationMilliseconds: 60_000,
+      played: true,
+      hlc: HLCTimestamp(wallMilliseconds: 10, counter: 0),
+      createdAtMilliseconds: 10
+    )
+    try await fixture.store.saveLocalMediaRecord(
+      LocalMediaRecord(
+        episodeKey: fixture.episodeKeys[2],
+        state: .queued,
+        taskIdentifier: 7,
+        updatedAtMilliseconds: 11
+      )
+    )
+
+    let candidates = try await fixture.store.automaticDownloadCandidates(
+      feedKey: fixture.feedKey,
+      episodeKeys: fixture.episodeKeys,
+      limit: 3
+    )
+
+    #expect(candidates == Array(fixture.episodeKeys[3...5].reversed()))
+  }
+
+  @Test
+  func cleanupCandidatesProtectFavoritesAndQueueEntries() async throws {
+    let fixture = try await Fixture.make(episodeCount: 5)
+    for (index, episodeKey) in fixture.episodeKeys.enumerated() {
+      try await fixture.store.saveLocalMediaRecord(
+        LocalMediaRecord(
+          episodeKey: episodeKey,
+          state: .queued,
+          taskIdentifier: index + 1,
+          updatedAtMilliseconds: Int64(index + 10)
+        )
+      )
+      try await fixture.store.saveLocalMediaRecord(
+        LocalMediaRecord(
+          episodeKey: episodeKey,
+          state: .completed,
+          localRelativePath: "Media/\(index).mp3",
+          downloadedBytes: 100,
+          contentLength: 100,
+          checksumSHA256: String(repeating: "a", count: 64),
+          updatedAtMilliseconds: Int64(index + 20)
+        )
+      )
+    }
+    try await fixture.store.setFavorite(true, for: fixture.episodeKeys[0])
+    _ = try await fixture.store.recordLocalMutation(
+      .queueEntry(
+        QueueEntryState(
+          episodeKey: fixture.episodeKeys[1],
+          orderToken: try FractionalIndex(rawValue: "0000000000000001"),
+          present: true
+        )
+      ),
+      hlc: HLCTimestamp(wallMilliseconds: 30, counter: 0),
+      createdAtMilliseconds: 30
+    )
+    _ = try await fixture.store.recordPlaybackMutation(
+      episodeKey: fixture.episodeKeys[2],
+      intent: .markPlayed,
+      positionMilliseconds: 60_000,
+      durationMilliseconds: 60_000,
+      played: true,
+      hlc: HLCTimestamp(wallMilliseconds: 31, counter: 0),
+      createdAtMilliseconds: 31
+    )
+
+    let candidates = try await fixture.store.downloadCleanupCandidates(
+      feedKey: fixture.feedKey,
+      autoDeletePlayed: true,
+      retentionLimit: 2,
+      limit: 100
+    )
+
+    #expect(candidates == [fixture.episodeKeys[2]])
+  }
 }
 
 private struct Fixture {
@@ -136,11 +223,11 @@ private struct Fixture {
   let feedKey: FeedKey
   let episodeKeys: [EpisodeKey]
 
-  static func make() async throws -> Fixture {
+  static func make(episodeCount: Int = 2) async throws -> Fixture {
     let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
     let feedURL = try #require(URL(string: "https://example.com/feed.xml"))
     let feedKey = try FeedKey(canonicalURL: feedURL)
-    let guids = ["one", "two"]
+    let guids = (1...episodeCount).map { "episode-\($0)" }
     let episodeKeys = try guids.map { guid in
       let enclosureURL = try url("https://cdn.example.com/\(guid).mp3")
       return try EpisodeKey(

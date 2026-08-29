@@ -13,7 +13,7 @@
 ## Tasks
 
 - [x] Task 1: Add v6 preferences/statistics schema and tested repositories.
-- [ ] Task 2: Add tested automatic download and cleanup policies and wire refresh triggers.
+- [x] Task 2: Add tested automatic download and cleanup policies and wire refresh triggers.
 - [ ] Task 3: Apply per-podcast playback rules and add video presentation.
 - [ ] Task 4: Add Keychain-backed authenticated-feed workflows and settings UI.
 - [ ] Task 5: Add bounded database restore validation and next-launch activation.

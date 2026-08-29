@@ -1,5 +1,6 @@
 import CoreContracts
 import DownloadsFeature
+import FeedLibrary
 import Foundation
 import ImportExportFeature
 import LocalData
@@ -69,13 +70,20 @@ final class AppModel {
   func start() async {
     loadSyncSettings()
     await reloadAll()
+    _ = await environment.podcastAutomationService?.runMaintenance()
+    await reloadDownloads()
     await refreshStaleFeeds()
   }
 
   func observePlayback() async {
     guard let engine = environment.playbackEngine else { return }
     for await snapshot in await engine.snapshots() {
+      let previousEpisodeKey = playback.item?.episodeKey
       playback = snapshot
+      if let previousEpisodeKey, previousEpisodeKey != snapshot.item?.episodeKey {
+        _ = await environment.podcastAutomationService?.runMaintenance()
+        await reloadDownloads()
+      }
     }
   }
 
@@ -157,8 +165,10 @@ final class AppModel {
   func refresh(_ feed: StoredFeed) async {
     guard let service = environment.feedLibraryService else { return }
     await performVoid {
-      _ = try await service.refresh(feedKey: feed.feedKey)
+      let outcome = try await service.refresh(feedKey: feed.feedKey)
+      await handleAutomation(outcome, feedKey: feed.feedKey)
       await reloadLibrary()
+      await reloadDownloads()
     }
   }
 
@@ -169,12 +179,14 @@ final class AppModel {
     var didFail = false
     for feed in feeds {
       do {
-        _ = try await service.refresh(feedKey: feed.feedKey)
+        let outcome = try await service.refresh(feedKey: feed.feedKey)
+        await handleAutomation(outcome, feedKey: feed.feedKey)
       } catch {
         didFail = true
       }
     }
     await reloadLibrary()
+    await reloadDownloads()
     if didFail {
       errorMessage = String(localized: "error.someFeedsFailed")
     }
@@ -192,9 +204,22 @@ final class AppModel {
     }
     guard !staleFeeds.isEmpty else { return }
     for feed in staleFeeds {
-      _ = try? await service.refresh(feedKey: feed.feedKey)
+      guard let outcome = try? await service.refresh(feedKey: feed.feedKey) else { continue }
+      await handleAutomation(outcome, feedKey: feed.feedKey)
     }
     await reloadLibrary()
+    await reloadDownloads()
+  }
+
+  private func handleAutomation(
+    _ outcome: FeedRefreshOutcome,
+    feedKey: FeedKey
+  ) async {
+    guard case .updated(let result) = outcome else { return }
+    _ = await environment.podcastAutomationService?.handleRefresh(
+      feedKey: feedKey,
+      insertedEpisodeKeys: result.insertedEpisodeKeys
+    )
   }
 
   func unsubscribe(_ feed: StoredFeed) async {
@@ -248,7 +273,9 @@ final class AppModel {
         createdAtMilliseconds: timestamp
       )
       await environment.stateSyncEngine?.scheduleDebounced(.playback)
+      _ = await environment.podcastAutomationService?.runMaintenance()
       await reloadLibrary()
+      await reloadDownloads()
     }
   }
 
