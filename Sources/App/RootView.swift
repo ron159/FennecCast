@@ -27,7 +27,7 @@ final class AppModel {
     positionMilliseconds: 0,
     durationMilliseconds: nil,
     rate: .normal,
-    sleepTimerActive: false
+    sleepTimer: .inactive
   )
   var sync = StateSyncSnapshot(
     phase: .idle,
@@ -335,15 +335,20 @@ final class AppModel {
     }
   }
 
-  func setSleepTimer(minutes: Int?) async {
+  func setSleepTimer(mode: PlaybackSleepMode?) async {
     guard let engine = environment.playbackEngine else { return }
     await performVoid {
-      if let minutes {
-        try await engine.startSleepTimer(.after(milliseconds: Int64(minutes) * 60_000))
+      if let mode {
+        try await engine.startSleepTimer(mode)
       } else {
         await engine.cancelSleepTimer()
       }
     }
+  }
+
+  func extendSleepTimer(_ value: PlaybackSleepExtension) async {
+    guard let engine = environment.playbackEngine else { return }
+    await performVoid { try await engine.extendSleepTimer(value) }
   }
 
   func enqueue(_ episode: StoredEpisode) async {
@@ -651,12 +656,13 @@ struct RootView: View {
       TabView {
         HomeView(model: model)
           .tabItem { Label("tab.home", systemImage: "house") }
-        EpisodeCollectionView(
-          model: model,
-          titleKey: "tab.inbox",
-          episodes: model.episodes.filter(\.inbox),
-          emptySystemImage: "tray"
-        )
+        NavigationStack {
+          AdvancedLibraryView(
+            model: model,
+            titleKey: "tab.inbox",
+            initialCriteria: EpisodeListCriteria(inbox: true)
+          )
+        }
         .tabItem { Label("tab.inbox", systemImage: "tray") }
         QueueView(model: model)
           .tabItem { Label("tab.queue", systemImage: "text.line.first.and.arrowtriangle.forward") }
@@ -744,30 +750,16 @@ private struct HomeView: View {
         }
       }
       .navigationTitle("tab.home")
-      .refreshable { await model.refreshAllFeeds() }
-    }
-  }
-}
-
-private struct EpisodeCollectionView: View {
-  let model: AppModel
-  let titleKey: LocalizedStringKey
-  let episodes: [StoredEpisode]
-  let emptySystemImage: String
-
-  var body: some View {
-    NavigationStack {
-      List {
-        if episodes.isEmpty {
-          ContentUnavailableView(titleKey, systemImage: emptySystemImage)
-        } else {
-          ForEach(episodes, id: \.episodeKey) { episode in
-            EpisodeRow(model: model, episode: episode)
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          NavigationLink {
+            AdvancedLibraryView(model: model)
+          } label: {
+            Label("library.title", systemImage: "rectangle.stack")
           }
         }
       }
-      .navigationTitle(titleKey)
-      .refreshable { await model.reloadLibrary() }
+      .refreshable { await model.refreshAllFeeds() }
     }
   }
 }
@@ -913,7 +905,16 @@ private struct FeedDetailView: View {
     .navigationTitle(feed.title)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
+      ToolbarItemGroup(placement: .topBarTrailing) {
+        NavigationLink {
+          AdvancedLibraryView(
+            model: model,
+            titleKey: "library.title",
+            feedKey: feed.feedKey
+          )
+        } label: {
+          Label("library.title", systemImage: "rectangle.stack")
+        }
         NavigationLink {
           PodcastSettingsView(model: model, feed: feed)
         } label: {
@@ -985,10 +986,12 @@ private struct AddSubscriptionView: View {
 
 private struct QueueView: View {
   let model: AppModel
+  @State private var selection = Set<EpisodeKey>()
+  @State private var editMode = EditMode.inactive
 
   var body: some View {
     NavigationStack {
-      List {
+      List(selection: $selection) {
         if model.queue.isEmpty {
           ContentUnavailableView(
             "empty.queue",
@@ -1035,12 +1038,87 @@ private struct QueueView: View {
                 Image(systemName: "ellipsis.circle")
               }
             }
+            .tag(item.episodeKey)
+          }
+          .onMove(perform: move)
+        }
+      }
+      .environment(\.editMode, $editMode)
+      .navigationTitle("tab.queue")
+      .toolbar {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+          Menu {
+            ForEach(QueueSortOrder.allCases, id: \.self) { order in
+              Button(queueSortKey(order)) {
+                Task { await model.sortQueue(by: order) }
+              }
+            }
+          } label: {
+            Label("sort.title", systemImage: "arrow.up.arrow.down")
+          }
+          EditButton()
+        }
+        if editMode.isEditing {
+          ToolbarItemGroup(placement: .bottomBar) {
+            Button("action.selectAll") {
+              selection = Set(model.queue.map(\.episodeKey))
+            }
+            Spacer()
+            Menu {
+              Button("action.moveTop") { moveSelection(toTop: true) }
+              Button("action.moveBottom") { moveSelection(toTop: false) }
+              Button("action.removeQueue", role: .destructive) { removeSelection() }
+            } label: {
+              Label("library.actions", systemImage: "ellipsis.circle")
+            }
+            .disabled(selection.isEmpty)
           }
         }
       }
-      .navigationTitle("tab.queue")
       .refreshable { await model.reloadLibrary() }
     }
+  }
+
+  private func move(from source: IndexSet, to destination: Int) {
+    var reordered = model.queue
+    reordered.move(fromOffsets: source, toOffset: destination)
+    model.queue = reordered
+    Task { _ = await model.reorderQueue(reordered.map(\.episodeKey)) }
+  }
+
+  private func moveSelection(toTop: Bool) {
+    let selected = model.queue.map(\.episodeKey).filter(selection.contains)
+    let unselected = model.queue.map(\.episodeKey).filter { !selection.contains($0) }
+    let reordered = toTop ? selected + unselected : unselected + selected
+    Task {
+      if await model.reorderQueue(reordered) {
+        selection.removeAll()
+      }
+    }
+  }
+
+  private func removeSelection() {
+    let keys = model.queue.map(\.episodeKey).filter(selection.contains)
+    Task {
+      if await model.removeQueueItems(keys) {
+        selection.removeAll()
+      }
+    }
+  }
+}
+
+private func queueSortKey(_ order: QueueSortOrder) -> LocalizedStringKey {
+  switch order {
+  case .oldestFirst: "sort.oldest"
+  case .newestFirst: "sort.newest"
+  case .episodeTitleAscending: "sort.episodeAZ"
+  case .episodeTitleDescending: "sort.episodeZA"
+  case .podcastTitleAscending: "sort.podcastAZ"
+  case .podcastTitleDescending: "sort.podcastZA"
+  case .durationShortestFirst: "sort.durationShortest"
+  case .durationLongestFirst: "sort.durationLongest"
+  case .smartShuffleOldestFirst: "sort.smartShuffleOldest"
+  case .smartShuffleNewestFirst: "sort.smartShuffleNewest"
   }
 }
 
@@ -1436,7 +1514,7 @@ private struct EpisodeRow: View {
   }
 }
 
-private struct EpisodeDetailView: View {
+struct EpisodeDetailView: View {
   let model: AppModel
   let episode: StoredEpisode
 
@@ -1580,6 +1658,7 @@ private struct PlayerView: View {
   let model: AppModel
   @Environment(\.dismiss) private var dismiss
   @State private var seekValue = 0.0
+  @State private var isSleepTimerPresented = false
 
   var body: some View {
     NavigationStack {
@@ -1662,17 +1741,14 @@ private struct PlayerView: View {
               systemImage: "speedometer"
             )
           }
-          Menu {
-            Button("sleep.15") { Task { await model.setSleepTimer(minutes: 15) } }
-            Button("sleep.30") { Task { await model.setSleepTimer(minutes: 30) } }
-            Button("sleep.60") { Task { await model.setSleepTimer(minutes: 60) } }
-            if model.playback.sleepTimerActive {
-              Button("sleep.cancel", role: .destructive) {
-                Task { await model.setSleepTimer(minutes: nil) }
-              }
-            }
+          Button {
+            isSleepTimerPresented = true
           } label: {
-            Label("player.sleep", systemImage: "moon.zzz")
+            Label {
+              Text(sleepTimerLabel(model.playback.sleepTimer))
+            } icon: {
+              Image(systemName: "moon.zzz")
+            }
           }
           Button {
             Task { await model.skipToNext() }
@@ -1702,6 +1778,10 @@ private struct PlayerView: View {
         ToolbarItem(placement: .topBarLeading) {
           Button("common.close") { dismiss() }
         }
+      }
+      .sheet(isPresented: $isSleepTimerPresented) {
+        SleepTimerView(model: model)
+          .presentationDetents([.medium, .large])
       }
       .onAppear {
         seekValue = Double(model.playback.positionMilliseconds)
@@ -1755,7 +1835,7 @@ private func isPlaying(_ phase: PlaybackPhase) -> Bool {
   phase == .playing || phase == .buffering
 }
 
-private func formatDuration(_ milliseconds: Int64) -> String {
+func formatDuration(_ milliseconds: Int64) -> String {
   let totalSeconds = max(0, milliseconds / 1_000)
   let hours = totalSeconds / 3_600
   let minutes = (totalSeconds % 3_600) / 60

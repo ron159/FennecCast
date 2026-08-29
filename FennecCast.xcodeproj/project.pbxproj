@@ -24,6 +24,7 @@
 		A1000000000000000000000F /* VideoPlayerSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* VideoPlayerSurface.swift */; };
 		A10000000000000000000010 /* AdvancedFeaturesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000010 /* AdvancedFeaturesView.swift */; };
 		A10000000000000000000011 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* CarPlaySceneDelegate.swift */; };
+		A10000000000000000000012 /* SleepTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* SleepTimerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 		A20000000000000000000010 /* AdvancedFeaturesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedFeaturesView.swift; sourceTree = "<group>"; };
 		A20000000000000000000011 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
 		A20000000000000000000012 /* FennecCast.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FennecCast.entitlements; sourceTree = "<group>"; };
+		A20000000000000000000013 /* SleepTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepTimerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +106,7 @@
 				A20000000000000000000009 /* VideoPlayerSurface.swift */,
 				A20000000000000000000010 /* AdvancedFeaturesView.swift */,
 				A20000000000000000000011 /* CarPlaySceneDelegate.swift */,
+				A20000000000000000000013 /* SleepTimerView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -255,6 +258,7 @@
 				A1000000000000000000000F /* VideoPlayerSurface.swift in Sources */,
 				A10000000000000000000010 /* AdvancedFeaturesView.swift in Sources */,
 				A10000000000000000000011 /* CarPlaySceneDelegate.swift in Sources */,
+				A10000000000000000000012 /* SleepTimerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
