@@ -14,7 +14,9 @@
 - OPML never contains playback, queue, downloads, database rows, settings or StateSync credentials.
 - Database export refuses to overwrite an existing file and never includes the StateSync token stored in Keychain.
 - Downloaded media files are not embedded in the SQLite snapshot.
-- Database restore is intentionally not exposed in this version; importing a mismatched or damaged database must not replace live state.
+- Database restore follows `SPEC-advanced-features.md`: only a bounded, validated,
+  same-device backup can be staged, and replacement happens before services open on the
+  next launch.
 
 ## Verification
 

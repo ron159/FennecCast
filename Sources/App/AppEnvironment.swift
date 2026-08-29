@@ -13,6 +13,11 @@ enum AppStartupFailure: Equatable {
   case localDatabase
 }
 
+enum DatabaseRestoreStartupResult: Equatable {
+  case applied
+  case rejected
+}
+
 @MainActor
 @Observable
 final class AppEnvironment {
@@ -32,6 +37,8 @@ final class AppEnvironment {
   let downloadManager: DownloadManager?
   let podcastAutomationService: PodcastAutomationService?
   let backgroundDownloadTransport: BackgroundDownloadTransport?
+  let databaseURL: URL?
+  let databaseRestoreStartupResult: DatabaseRestoreStartupResult?
   let startupFailure: AppStartupFailure?
 
   init(
@@ -49,6 +56,8 @@ final class AppEnvironment {
     downloadManager: DownloadManager? = nil,
     podcastAutomationService: PodcastAutomationService? = nil,
     backgroundDownloadTransport: BackgroundDownloadTransport? = nil,
+    databaseURL: URL? = nil,
+    databaseRestoreStartupResult: DatabaseRestoreStartupResult? = nil,
     startupFailure: AppStartupFailure? = nil
   ) {
     self.appName = appName
@@ -65,6 +74,8 @@ final class AppEnvironment {
     self.downloadManager = downloadManager
     self.podcastAutomationService = podcastAutomationService
     self.backgroundDownloadTransport = backgroundDownloadTransport
+    self.databaseURL = databaseURL
+    self.databaseRestoreStartupResult = databaseRestoreStartupResult
     self.startupFailure = startupFailure
   }
 
@@ -90,11 +101,24 @@ final class AppEnvironment {
     fileManager: FileManager = .default
   ) -> AppEnvironment {
     do {
-      let databaseURL = databaseURL(in: applicationSupportDirectory)
+      let databaseURL = Self.databaseURL(in: applicationSupportDirectory)
+      let stagedRestoreURL = Self.restoreStagingURL(in: applicationSupportDirectory)
       try fileManager.createDirectory(
         at: databaseURL.deletingLastPathComponent(),
         withIntermediateDirectories: true
       )
+      let restoreCoordinator = DatabaseRestoreCoordinator()
+      let databaseRestoreStartupResult: DatabaseRestoreStartupResult?
+      do {
+        databaseRestoreStartupResult =
+          try restoreCoordinator.applyStagedBackup(
+            liveDatabaseURL: databaseURL,
+            stagingURL: stagedRestoreURL
+          ) ? .applied : nil
+      } catch {
+        try? restoreCoordinator.discardStagedBackup(at: stagedRestoreURL)
+        databaseRestoreStartupResult = .rejected
+      }
       let store = try LocalDataStore.openOrCreate(path: databaseURL.path)
       let clock = StateSyncClock()
       let stateSyncSettingsStore = StateSyncSettingsStore()
@@ -155,7 +179,9 @@ final class AppEnvironment {
         systemPlaybackController: SystemPlaybackController(engine: playbackEngine),
         downloadManager: downloadManager,
         podcastAutomationService: podcastAutomationService,
-        backgroundDownloadTransport: backgroundDownloadTransport
+        backgroundDownloadTransport: backgroundDownloadTransport,
+        databaseURL: databaseURL,
+        databaseRestoreStartupResult: databaseRestoreStartupResult
       )
     } catch {
       return AppEnvironment(startupFailure: .localDatabase)
@@ -166,5 +192,11 @@ final class AppEnvironment {
     applicationSupportDirectory
       .appendingPathComponent("FennecCast", isDirectory: true)
       .appendingPathComponent("FennecCast.sqlite", isDirectory: false)
+  }
+
+  static func restoreStagingURL(in applicationSupportDirectory: URL) -> URL {
+    databaseURL(in: applicationSupportDirectory)
+      .deletingLastPathComponent()
+      .appendingPathComponent("FennecCast.restore.pending.sqlite", isDirectory: false)
   }
 }

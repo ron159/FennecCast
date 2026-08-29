@@ -16,7 +16,7 @@
 - [x] Task 2: Add tested automatic download and cleanup policies and wire refresh triggers.
 - [x] Task 3: Apply per-podcast playback rules and add video presentation.
 - [ ] Task 4: Add Keychain-backed authenticated-feed workflows and settings UI.
-- [ ] Task 5: Add bounded database restore validation and next-launch activation.
+- [x] Task 5: Add bounded database restore validation and next-launch activation.
 - [ ] Task 6: Add tag, preferences, statistics, automation, and restore UI/localization.
 - [ ] Task 7: Add the CarPlay scene, templates, entitlement, and project configuration.
 - [ ] Task 8: Run focused/full tests, formatting, security review, iOS builds, and scope audit.

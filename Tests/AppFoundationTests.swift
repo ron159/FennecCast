@@ -21,6 +21,8 @@ final class AppFoundationTests: XCTestCase {
     XCTAssertNil(environment.systemPlaybackController)
     XCTAssertNil(environment.downloadManager)
     XCTAssertNil(environment.backgroundDownloadTransport)
+    XCTAssertNil(environment.databaseURL)
+    XCTAssertNil(environment.databaseRestoreStartupResult)
     XCTAssertNil(environment.startupFailure)
   }
 
@@ -45,6 +47,11 @@ final class AppFoundationTests: XCTestCase {
     XCTAssertNotNil(environment.systemPlaybackController)
     XCTAssertNotNil(environment.downloadManager)
     XCTAssertNotNil(environment.backgroundDownloadTransport)
+    XCTAssertEqual(
+      environment.databaseURL,
+      AppEnvironment.databaseURL(in: applicationSupport)
+    )
+    XCTAssertNil(environment.databaseRestoreStartupResult)
     XCTAssertTrue(
       FileManager.default.fileExists(
         atPath: AppEnvironment.databaseURL(in: applicationSupport).path
@@ -58,6 +65,15 @@ final class AppFoundationTests: XCTestCase {
     XCTAssertEqual(
       AppEnvironment.databaseURL(in: applicationSupport).path,
       "/tmp/Application Support/FennecCast/FennecCast.sqlite"
+    )
+  }
+
+  func testRestoreStagingUsesTheDatabaseDirectory() {
+    let applicationSupport = URL(fileURLWithPath: "/tmp/Application Support")
+
+    XCTAssertEqual(
+      AppEnvironment.restoreStagingURL(in: applicationSupport).path,
+      "/tmp/Application Support/FennecCast/FennecCast.restore.pending.sqlite"
     )
   }
 

@@ -19,8 +19,8 @@
 - [x] Write authenticated request and credential validation tests and observe RED.
 - [x] Implement Keychain feed credentials and safe redirect handling.
 - [ ] Add authenticated add/edit feed workflows.
-- [ ] Write backup validation/staging tests and observe RED.
-- [ ] Implement same-device, next-launch database restore.
+- [x] Write backup validation/staging tests and observe RED.
+- [x] Implement same-device, next-launch database restore.
 
 ## UI and CarPlay
 
