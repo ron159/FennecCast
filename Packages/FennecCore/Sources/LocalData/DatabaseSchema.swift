@@ -65,6 +65,27 @@ enum DatabaseSchema {
       try db.execute(sql: "ALTER TABLE episodes ADD COLUMN chapters_url TEXT")
       try db.execute(sql: "ALTER TABLE episodes ADD COLUMN chapters_type TEXT")
     }
+    migrator.registerMigration("v6.advancedFeedPreferences") { db in
+      try db.execute(
+        sql: """
+          ALTER TABLE feed_settings ADD COLUMN auto_delete_played INTEGER NOT NULL DEFAULT 0
+            CHECK (auto_delete_played IN (0, 1))
+          """
+      )
+      try db.execute(
+        sql: """
+          ALTER TABLE feed_settings ADD COLUMN download_retention_limit INTEGER
+            CHECK (download_retention_limit IS NULL OR
+              download_retention_limit BETWEEN 1 AND 100)
+          """
+      )
+      try db.execute(
+        sql: """
+          CREATE INDEX feed_settings_auto_download
+          ON feed_settings(auto_download, feed_key)
+          """
+      )
+    }
     return migrator
   }
 

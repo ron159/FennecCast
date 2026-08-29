@@ -24,6 +24,7 @@ public enum LocalDataError: Error, Equatable, Sendable {
   case invalidDownloadTransition(from: DownloadState, to: DownloadState)
   case invalidDownloadMetadata
   case invalidLocalMediaPath
+  case invalidFeedPreferences
   case invalidBackupDestination
   case backupDestinationExists
 }

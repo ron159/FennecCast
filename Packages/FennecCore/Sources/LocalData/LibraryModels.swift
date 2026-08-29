@@ -153,6 +153,77 @@ public struct StoredQueueItem: Equatable, Sendable {
   }
 }
 
+public struct FeedPreferences: Equatable, Sendable {
+  public static let `default` = FeedPreferences()
+
+  public let autoDownload: Bool
+  public let autoDeletePlayed: Bool
+  public let downloadRetentionLimit: Int?
+  public let playbackRate: Float?
+  public let skipIntroMilliseconds: Int64
+  public let skipEndingMilliseconds: Int64
+  public let tags: [String]
+
+  public init(
+    autoDownload: Bool = false,
+    autoDeletePlayed: Bool = false,
+    downloadRetentionLimit: Int? = nil,
+    playbackRate: Float? = nil,
+    skipIntroMilliseconds: Int64 = 0,
+    skipEndingMilliseconds: Int64 = 0,
+    tags: [String] = []
+  ) {
+    self.autoDownload = autoDownload
+    self.autoDeletePlayed = autoDeletePlayed
+    self.downloadRetentionLimit = downloadRetentionLimit
+    self.playbackRate = playbackRate
+    self.skipIntroMilliseconds = skipIntroMilliseconds
+    self.skipEndingMilliseconds = skipEndingMilliseconds
+    self.tags = tags
+  }
+}
+
+public struct FeedStatistics: Equatable, Sendable {
+  public let feedKey: FeedKey
+  public let feedTitle: String
+  public let listeningMilliseconds: Int64
+  public let completedEpisodeCount: Int
+  public let downloadedBytes: Int64
+
+  public init(
+    feedKey: FeedKey,
+    feedTitle: String,
+    listeningMilliseconds: Int64,
+    completedEpisodeCount: Int,
+    downloadedBytes: Int64
+  ) {
+    self.feedKey = feedKey
+    self.feedTitle = feedTitle
+    self.listeningMilliseconds = listeningMilliseconds
+    self.completedEpisodeCount = completedEpisodeCount
+    self.downloadedBytes = downloadedBytes
+  }
+}
+
+public struct LibraryStatistics: Equatable, Sendable {
+  public let listeningMilliseconds: Int64
+  public let completedEpisodeCount: Int
+  public let downloadedBytes: Int64
+  public let feeds: [FeedStatistics]
+
+  public init(
+    listeningMilliseconds: Int64,
+    completedEpisodeCount: Int,
+    downloadedBytes: Int64,
+    feeds: [FeedStatistics]
+  ) {
+    self.listeningMilliseconds = listeningMilliseconds
+    self.completedEpisodeCount = completedEpisodeCount
+    self.downloadedBytes = downloadedBytes
+    self.feeds = feeds
+  }
+}
+
 public enum EpisodeListFilter: Equatable, Sendable {
   case all
   case inbox

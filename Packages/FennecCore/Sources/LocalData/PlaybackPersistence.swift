@@ -41,13 +41,37 @@ extension LocalDataStore {
         feedURL: feedURL,
         guid: row["guid"]
       )
-      return try Self.recordLocalMutation(
+      let previousPosition =
+        try Int64.fetchOne(
+          db,
+          sql: "SELECT position_ms FROM episode_state WHERE episode_key = ?",
+          arguments: [episodeKey.rawValue]
+        ) ?? 0
+      let listenedDelta: Int64
+      switch intent {
+      case .checkpoint, .playbackPause:
+        listenedDelta = min(300_000, max(0, positionMilliseconds - previousPosition))
+      case .seek, .markPlayed, .markUnplayed:
+        listenedDelta = 0
+      }
+      let mutation = try Self.recordLocalMutation(
         .episodePlayback(playback),
         hlc: hlc,
         deviceID: deviceID,
         createdAtMilliseconds: createdAtMilliseconds,
         db: db
       )
+      if listenedDelta > 0 {
+        try db.execute(
+          sql: """
+            UPDATE episode_state
+            SET played_duration_ms = played_duration_ms + ?
+            WHERE episode_key = ?
+            """,
+          arguments: [listenedDelta, episodeKey.rawValue]
+        )
+      }
+      return mutation
     }
   }
 }
