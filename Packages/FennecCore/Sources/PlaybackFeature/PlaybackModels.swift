@@ -56,7 +56,9 @@ public struct PlaybackSnapshot: Equatable, Sendable {
   public let positionMilliseconds: Int64
   public let durationMilliseconds: Int64?
   public let rate: PlaybackRate
-  public let sleepTimerActive: Bool
+  public let sleepTimer: PlaybackSleepTimerStatus
+
+  public var sleepTimerActive: Bool { sleepTimer.isActive }
 
   public init(
     phase: PlaybackPhase,
@@ -64,13 +66,14 @@ public struct PlaybackSnapshot: Equatable, Sendable {
     positionMilliseconds: Int64,
     durationMilliseconds: Int64?,
     rate: PlaybackRate,
-    sleepTimerActive: Bool
+    sleepTimer: PlaybackSleepTimerStatus
   ) {
     self.phase = phase
     self.item = item
     self.positionMilliseconds = positionMilliseconds
     self.durationMilliseconds = durationMilliseconds
     self.rate = rate
-    self.sleepTimerActive = sleepTimerActive
+    self.sleepTimer = sleepTimer
   }
+
 }

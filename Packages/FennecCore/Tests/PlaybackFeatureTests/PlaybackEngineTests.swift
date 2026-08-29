@@ -286,6 +286,28 @@ struct PlaybackEngineTests {
   }
 
   @Test
+  func sleepTimerSnapshotReportsAndExtendsRemainingTime() async throws {
+    let fixture = try await Fixture.make()
+    let driver = DriverSpy()
+    let monotonic = LockedClock(1_000)
+    let engine = PlaybackEngine(
+      store: fixture.store,
+      queueService: fixture.queue,
+      driver: driver,
+      timeMilliseconds: { 42_000 },
+      monotonicMilliseconds: { monotonic.value }
+    )
+    try await engine.load(fixture.keys[0], autoplay: true)
+    try await engine.startSleepTimer(.after(milliseconds: 60_000))
+
+    #expect((await engine.snapshot()).sleepTimer == .timeRemaining(milliseconds: 60_000))
+    monotonic.value = 11_000
+    #expect((await engine.snapshot()).sleepTimer == .timeRemaining(milliseconds: 50_000))
+    try await engine.extendSleepTimer(.time(milliseconds: 10_000))
+    #expect((await engine.snapshot()).sleepTimer == .timeRemaining(milliseconds: 60_000))
+  }
+
+  @Test
   func audioInterruptionAndHeadphoneDisconnectControlPlayback() async throws {
     let fixture = try await Fixture.make()
     let driver = DriverSpy()

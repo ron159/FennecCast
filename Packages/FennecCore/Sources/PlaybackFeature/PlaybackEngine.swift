@@ -143,7 +143,7 @@ public actor PlaybackEngine {
       positionMilliseconds: positionMilliseconds,
       durationMilliseconds: durationMilliseconds,
       rate: rate,
-      sleepTimerActive: sleepTimer.isActive
+      sleepTimer: sleepTimer.status(monotonicNowMilliseconds: monotonicMilliseconds())
     )
   }
 
@@ -419,6 +419,11 @@ public actor PlaybackEngine {
   public func cancelSleepTimer() {
     sleepTimer.cancel()
     publishSnapshot()
+  }
+
+  public func extendSleepTimer(_ value: PlaybackSleepExtension) throws {
+    defer { publishSnapshot() }
+    try sleepTimer.extend(value)
   }
 
   public func flush() async throws {

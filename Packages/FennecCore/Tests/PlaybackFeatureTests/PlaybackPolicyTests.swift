@@ -54,6 +54,33 @@ struct PlaybackPolicyTests {
   }
 
   @Test
+  func sleepTimerReportsRemainingAndExtendsMatchingTarget() throws {
+    var timer = PlaybackSleepTimer()
+    try timer.start(.after(milliseconds: 60_000), monotonicNowMilliseconds: 1_000)
+
+    #expect(
+      timer.status(monotonicNowMilliseconds: 11_000)
+        == .timeRemaining(milliseconds: 50_000)
+    )
+    try timer.extend(.time(milliseconds: 10_000))
+    #expect(
+      timer.status(monotonicNowMilliseconds: 11_000)
+        == .timeRemaining(milliseconds: 60_000)
+    )
+    #expect(throws: PlaybackPolicyError.invalidSleepTimer) {
+      try timer.extend(.episodes(1))
+    }
+
+    try timer.start(.afterEpisodes(2), monotonicNowMilliseconds: 20_000)
+    #expect(timer.status(monotonicNowMilliseconds: 20_000) == .episodesRemaining(2))
+    try timer.extend(.episodes(3))
+    #expect(timer.status(monotonicNowMilliseconds: 20_000) == .episodesRemaining(5))
+    #expect(throws: PlaybackPolicyError.invalidSleepTimer) {
+      try timer.extend(.time(milliseconds: 1_000))
+    }
+  }
+
+  @Test
   func chaptersNormalizeOrderAndPreferHigherPrioritySource() throws {
     let feed = try PlaybackChapter(
       startMilliseconds: 0,

@@ -56,6 +56,19 @@ public enum PlaybackSleepMode: Equatable, Sendable {
   case afterEpisodes(Int)
 }
 
+public enum PlaybackSleepExtension: Equatable, Sendable {
+  case time(milliseconds: Int64)
+  case episodes(Int)
+}
+
+public enum PlaybackSleepTimerStatus: Equatable, Sendable {
+  case inactive
+  case timeRemaining(milliseconds: Int64)
+  case episodesRemaining(Int)
+
+  public var isActive: Bool { self != .inactive }
+}
+
 public struct PlaybackSleepTimer: Equatable, Sendable {
   private enum Target: Equatable, Sendable {
     case deadline(Int64)
@@ -67,6 +80,17 @@ public struct PlaybackSleepTimer: Equatable, Sendable {
   public init() {}
 
   public var isActive: Bool { target != nil }
+
+  public func status(monotonicNowMilliseconds: Int64) -> PlaybackSleepTimerStatus {
+    switch target {
+    case .deadline(let deadline):
+      return .timeRemaining(milliseconds: max(0, deadline - monotonicNowMilliseconds))
+    case .episodes(let count):
+      return .episodesRemaining(count)
+    case nil:
+      return .inactive
+    }
+  }
 
   public mutating func start(
     _ mode: PlaybackSleepMode,
@@ -95,6 +119,31 @@ public struct PlaybackSleepTimer: Equatable, Sendable {
 
   public mutating func cancel() {
     target = nil
+  }
+
+  public mutating func extend(_ value: PlaybackSleepExtension) throws {
+    switch (target, value) {
+    case (.deadline(let deadline), .time(let milliseconds)):
+      guard milliseconds > 0 else {
+        throw PlaybackPolicyError.invalidSleepTimer
+      }
+      let (extended, overflow) = deadline.addingReportingOverflow(milliseconds)
+      guard !overflow else {
+        throw PlaybackPolicyError.invalidSleepTimer
+      }
+      target = .deadline(extended)
+    case (.episodes(let remaining), .episodes(let count)):
+      guard count > 0 else {
+        throw PlaybackPolicyError.invalidSleepTimer
+      }
+      let (extended, overflow) = remaining.addingReportingOverflow(count)
+      guard !overflow else {
+        throw PlaybackPolicyError.invalidSleepTimer
+      }
+      target = .episodes(extended)
+    default:
+      throw PlaybackPolicyError.invalidSleepTimer
+    }
   }
 
   public mutating func shouldPause(monotonicNowMilliseconds: Int64) -> Bool {
