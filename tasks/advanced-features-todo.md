@@ -30,7 +30,7 @@
 
 ## Closeout
 
-- [ ] Run all package tests and strict Swift format lint.
-- [ ] Run generic iOS build and build-for-testing.
-- [ ] Review correctness, simplicity, architecture, security, and performance.
-- [ ] Audit diff, secrets, StateSync scope, and adjacent Android status.
+- [x] Run all package tests and strict Swift format lint.
+- [x] Run generic iOS build and build-for-testing.
+- [x] Review correctness, simplicity, architecture, security, and performance.
+- [x] Audit diff, secrets, StateSync scope, and adjacent Android status.

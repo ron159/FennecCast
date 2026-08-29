@@ -41,3 +41,13 @@ entitlement is provisioned.
 - Episode selection calls the same tested playback engine used by the iPhone UI.
 - The generic iOS build and build-for-testing compile the CarPlay integration.
 
+## Verification evidence
+
+Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
+
+- The generic iOS Debug and Release builds passed without code signing.
+- The generic iOS Simulator `build-for-testing` target passed compilation.
+- The built app manifest expands the delegate to `FennecCast.CarPlaySceneDelegate`.
+- The project connects `FennecCast.entitlements` to Debug and Release configurations.
+- Physical CarPlay connection still requires Apple's audio-app entitlement approval,
+  provisioning, and a signed device build.

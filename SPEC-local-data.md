@@ -79,7 +79,7 @@ The initial schema migration is append-only after release. Later schema changes 
 
 Verified on 2026-08-29 with Xcode 27 beta, Swift 6.4 and GRDB 7.11.1:
 
-- `xcrun swift test --package-path Packages/FennecCore`: 118 tests passed, including 28 LocalData tests and 37 CoreContracts tests.
+- `xcrun swift test --package-path Packages/FennecCore`: 136 tests passed, including 36 LocalData tests and 37 CoreContracts tests.
 - `xcrun swift-format lint --strict --recursive Sources Tests Packages/FennecCore/Sources Packages/FennecCore/Tests`: passed.
 - Generic iOS Simulator `build`: passed with `CoreContracts`, `LocalData` and GRDB in the application dependency graph.
 - Generic iOS Simulator `build-for-testing`: app and XCTest bundle compiled successfully.

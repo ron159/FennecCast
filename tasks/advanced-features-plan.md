@@ -19,13 +19,13 @@
 - [x] Task 5: Add bounded database restore validation and next-launch activation.
 - [x] Task 6: Add tag, preferences, statistics, automation, and restore UI/localization.
 - [x] Task 7: Add the CarPlay scene, templates, entitlement, and project configuration.
-- [ ] Task 8: Run focused/full tests, formatting, security review, iOS builds, and scope audit.
+- [x] Task 8: Run focused/full tests, formatting, security review, iOS builds, and scope audit.
 
 ## Verification checkpoints
 
-- [ ] Every behavior slice records RED before production implementation.
-- [ ] StateSync protocol models and payload whitelist are unchanged.
-- [ ] Credentials and imported files pass their security boundaries.
-- [ ] Automatic cleanup cannot remove favorites or queued episodes.
-- [ ] Existing database migration fixtures still pass.
-- [ ] Adjacent AntennaPod checkout remains unchanged.
+- [x] Every behavior slice records RED before production implementation.
+- [x] StateSync protocol models and payload whitelist are unchanged.
+- [x] Credentials and imported files pass their security boundaries.
+- [x] Automatic cleanup cannot remove favorites or queued episodes.
+- [x] Existing database migration fixtures still pass.
+- [x] Adjacent AntennaPod checkout remains unchanged.

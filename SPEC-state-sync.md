@@ -39,7 +39,7 @@ Synchronize only subscription tombstones, episode playback state and queue entri
 
 Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
 
-- All 118 `FennecCore` tests passed, including 12 StateSync tests.
+- All 136 `FennecCore` tests passed, including 12 StateSync tests.
 - Strict Swift format lint passed across application and package sources/tests.
 - Generic iOS Simulator build and `build-for-testing` passed.
 - App XCTest execution remains unavailable because this Mac has no installed Simulator Runtime.

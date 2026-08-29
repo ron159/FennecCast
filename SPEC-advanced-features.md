@@ -55,3 +55,14 @@ decisions, and media files stay on the iOS device.
 - English and Simplified Chinese strings cover every new control and status.
 - Package tests, strict formatting, generic iOS build, and build-for-testing pass.
 
+## Verification evidence
+
+Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
+
+- All 136 `FennecCore` tests passed, including preferences, automation, playback rules,
+  credential redirects/rollback, and database restore.
+- Strict Swift format lint, plist validation, string-catalog JSON validation, and diff
+  whitespace checks passed.
+- Generic iOS Debug and Release builds and simulator `build-for-testing` passed.
+- No StateSync protocol/model files changed in this increment; the advanced state remains
+  device-local.

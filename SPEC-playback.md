@@ -1,7 +1,7 @@
 # Specification: playback
 
 **Status:** Complete  
-**Sources:** FennecCast whitepaper v1.1, AntennaPod 3.12.0 behavior and Apple AVFoundation/MediaPlayer documentation
+**Sources:** FennecCast whitepaper v1.1, AntennaPod 3.12.0 behavior and Apple AVFoundation, AVKit, and MediaPlayer documentation
 
 ## 1. Purpose
 
@@ -31,11 +31,14 @@ Provide one local-first playback state source for streamed or downloaded podcast
 - Queue auto-advance, end-of-episode and episode-count sleep timers based on a monotonic clock/event source.
 - Deterministic chapter normalization and source-priority merging.
 - Audio interruptions, route changes, lock-screen, headset and Control Center commands.
+- Per-podcast playback-rate, skip-intro, and skip-ending rules, without leaking a rate
+  override into another podcast.
+- Native AVKit video presentation and Picture in Picture over the same AVPlayer session.
 
 ## 4. Out of Scope
 
-- Skip Silence, volume normalization, DRM, video, AirPlay-specific UI and CarPlay.
-- Per-feed playback preferences beyond the existing local schema.
+- Skip Silence, volume normalization, DRM, and AirPlay-specific UI.
+- CarPlay template presentation, which is specified separately in `SPEC-carplay.md`.
 - Playback-history analytics and media-file synchronization.
 
 ## 5. Safety and State Rules
@@ -50,7 +53,8 @@ Provide one local-first playback state source for streamed or downloaded podcast
 
 - Deterministic tests cover load/resume, play/pause, rate, seek/skip, checkpoints, smart completion, sleep timer and queue advancement.
 - Chapter tests cover invalid entries, stable ordering, duplicate timestamps and source priority.
-- The native AVPlayer driver and system media controls compile for generic iOS Simulator.
+- The native AVPlayer driver, AVKit video surface, and system media controls compile for
+  generic iOS and the simulator test target.
 - Background audio mode is present in the built app `Info.plist`.
 - Full package tests, strict formatting, generic iOS build and build-for-testing pass.
 
@@ -58,9 +62,10 @@ Provide one local-first playback state source for streamed or downloaded podcast
 
 Verified on 2026-08-29 with Xcode 27 beta and Swift 6.4:
 
-- Playback policy, persistence, engine and supplemental-content suites: 17 tests passed.
-- Full `FennecCore` package: 118 tests passed.
+- Playback policy, persistence, engine and supplemental-content suites: 20 tests passed.
+- Full `FennecCore` package: 136 tests passed.
 - Strict Swift format lint passed for the application and package sources/tests.
-- Generic iOS Simulator build and `build-for-testing` passed with `PlaybackFeature` linked to the app.
+- Generic iOS Release build and simulator `build-for-testing` passed with `PlaybackFeature`
+  linked to the app.
 - The built app `Info.plist` contains `UIBackgroundModes = [audio, fetch]`.
 - Lock-screen hardware interaction and background continuation still require physical-device validation.
