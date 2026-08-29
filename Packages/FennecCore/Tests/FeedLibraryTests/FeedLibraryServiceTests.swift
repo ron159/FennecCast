@@ -6,6 +6,52 @@ import Testing
 
 struct FeedLibraryServiceTests {
   @Test
+  func failedSubscriptionRestoresExistingCredentials() async throws {
+    let requestedURL = try url("https://example.com/old-private.xml")
+    let finalURL = try url("https://example.com/private.xml")
+    let otherURL = try url("https://example.com/other.xml")
+    let requestedKey = try FeedKey(canonicalURL: requestedURL)
+    let finalKey = try FeedKey(canonicalURL: finalURL)
+    let otherKey = try FeedKey(canonicalURL: otherURL)
+    let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
+    try await store.recordAlias(
+      from: requestedKey.rawValue,
+      to: otherKey.rawValue,
+      kind: .feed,
+      updatedAtMilliseconds: 1
+    )
+    let oldCredentials = try FeedCredentials(username: "old", password: "old-secret")
+    let newCredentials = try FeedCredentials(username: "new", password: "new-secret")
+    let credentialStore = MemoryFeedCredentialStore()
+    try credentialStore.saveCredentials(oldCredentials, for: finalKey)
+    let service = FeedLibraryService(
+      store: store,
+      httpClient: FeedHTTPClient(
+        loader: StubFeedLoader(
+          responses: [
+            try response(data: feedFixture, url: finalURL, status: 200)
+          ]
+        )
+      ),
+      credentialStore: credentialStore,
+      timeMilliseconds: { 900 }
+    )
+
+    await #expect(
+      throws: LocalDataError.aliasConflict(
+        existing: otherKey.rawValue,
+        requested: finalKey.rawValue
+      )
+    ) {
+      try await service.addSubscription(
+        from: requestedURL,
+        credentials: newCredentials
+      )
+    }
+    #expect(try credentialStore.readCredentials(for: finalKey) == oldCredentials)
+  }
+
+  @Test
   func storesRedirectedCredentialsAndReusesThemForRefresh() async throws {
     let originalURL = try url("https://example.com/old-private.xml")
     let finalURL = try url("https://example.com/private.xml")

@@ -96,6 +96,7 @@ public actor PlaybackEngine {
   private var item: PlaybackItem?
   private var positionMilliseconds: Int64 = 0
   private var durationMilliseconds: Int64?
+  private var preferredRate = PlaybackRate.normal
   private var rate = PlaybackRate.normal
   private var skipEndingMilliseconds: Int64 = 0
   private var played = false
@@ -189,6 +190,8 @@ public actor PlaybackEngine {
       : storedPosition
     if let configuredRate = preferences.playbackRate {
       rate = try PlaybackRate(configuredRate)
+    } else {
+      rate = preferredRate
     }
     skipEndingMilliseconds = preferences.skipEndingMilliseconds
     if flushExisting, item != nil {
@@ -380,6 +383,7 @@ public actor PlaybackEngine {
       throw PlaybackEngineError.noCurrentItem
     }
     try await driver.setRate(newRate)
+    preferredRate = newRate
     rate = newRate
   }
 

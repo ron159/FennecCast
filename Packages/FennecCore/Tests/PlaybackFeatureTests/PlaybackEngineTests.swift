@@ -7,6 +7,35 @@ import Testing
 
 struct PlaybackEngineTests {
   @Test
+  func podcastRateOverrideDoesNotLeakIntoOtherPodcasts() async throws {
+    let fixture = try await Fixture.make()
+    let otherEpisodeKey = try await addPodcast(
+      to: fixture.store,
+      feedURL: "https://example.com/other-feed.xml",
+      guid: "other-episode"
+    )
+    try await fixture.store.saveFeedPreferences(
+      FeedPreferences(playbackRate: 1.5),
+      for: fixture.feedKey
+    )
+    let driver = DriverSpy()
+    let engine = PlaybackEngine(
+      store: fixture.store,
+      queueService: fixture.queue,
+      driver: driver
+    )
+
+    try await engine.load(otherEpisodeKey)
+    try await engine.setRate(PlaybackRate(1.25))
+    try await engine.load(fixture.keys[0])
+    #expect((await engine.snapshot()).rate == (try PlaybackRate(1.5)))
+
+    try await engine.load(otherEpisodeKey)
+    #expect((await engine.snapshot()).rate == (try PlaybackRate(1.25)))
+    #expect((await driver.lastLoad())?.rate == (try PlaybackRate(1.25)))
+  }
+
+  @Test
   func appliesPerPodcastPlaybackRulesAndFinishesAtSkippedEnding() async throws {
     let fixture = try await Fixture.make()
     try await fixture.store.saveFeedPreferences(
@@ -298,6 +327,48 @@ struct PlaybackEngineTests {
       try await engine.load(fixture.keys[2])
     }
   }
+}
+
+private func addPodcast(
+  to store: LocalDataStore,
+  feedURL: String,
+  guid: String
+) async throws -> EpisodeKey {
+  let url = try #require(URL(string: feedURL))
+  let feedKey = try FeedKey(canonicalURL: url)
+  let episodeKey = try EpisodeKey(
+    input: EpisodeIdentityInput(feedKey: feedKey, guid: guid)
+  )
+  _ = try await store.saveInitialSubscription(
+    feed: FeedMetadata(
+      feedKey: feedKey,
+      canonicalURL: url,
+      title: "Other Cast",
+      author: nil,
+      summaryHTML: nil,
+      imageURL: nil,
+      eTag: nil,
+      lastModified: nil
+    ),
+    episodes: [
+      EpisodeMetadata(
+        episodeKey: episodeKey,
+        feedKey: feedKey,
+        guid: guid,
+        enclosureURL: URL(string: "https://cdn.example.com/other.mp3"),
+        linkURL: nil,
+        title: "Other Episode",
+        publicationDateMilliseconds: 2_000,
+        durationMilliseconds: 120_000,
+        summaryHTML: nil,
+        mimeType: "audio/mpeg"
+      )
+    ],
+    markNewEpisodesInbox: false,
+    hlc: HLCTimestamp(wallMilliseconds: 2, counter: 0),
+    timestampMilliseconds: 2
+  )
+  return episodeKey
 }
 
 private actor DriverSpy: PlaybackDriving {

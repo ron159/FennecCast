@@ -60,8 +60,12 @@ public actor FeedLibraryService {
     let finalFeedKey = try FeedKey(canonicalURL: finalURL)
     let timestamp = timeMilliseconds()
     let hlc = try await clock.tick(physicalTimeMilliseconds: timestamp)
+    let previousCredentials: FeedCredentials?
     if let credentials {
+      previousCredentials = try readCredentials(for: finalFeedKey)
       try saveCredentials(credentials, for: finalFeedKey)
+    } else {
+      previousCredentials = nil
     }
     let result: InitialSubscriptionResult
     do {
@@ -81,7 +85,11 @@ public actor FeedLibraryService {
       )
     } catch {
       if credentials != nil {
-        try? credentialStore.deleteCredentials(for: finalFeedKey)
+        if let previousCredentials {
+          try? credentialStore.saveCredentials(previousCredentials, for: finalFeedKey)
+        } else {
+          try? credentialStore.deleteCredentials(for: finalFeedKey)
+        }
       }
       throw error
     }
