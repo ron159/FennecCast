@@ -151,6 +151,228 @@ struct LibraryPersistenceTests {
   }
 
   @Test
+  func advancedFiltersComposeQueueDownloadPlaybackAndLocalFlags() async throws {
+    let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
+    let fixture = try fixture()
+    _ = try await store.saveInitialSubscription(
+      feed: fixture.feed,
+      episodes: fixture.episodes,
+      markNewEpisodesInbox: false,
+      hlc: HLCTimestamp(wallMilliseconds: 100, counter: 0),
+      timestampMilliseconds: 100
+    )
+    let first = fixture.episodes[0]
+    let second = fixture.episodes[1]
+    try await store.setFavorite(true, for: second.episodeKey)
+    _ = try await store.recordLocalMutation(
+      .episodePlayback(
+        try EpisodePlayback(
+          episodeKey: second.episodeKey,
+          intent: .markPlayed,
+          positionMilliseconds: 180_000,
+          durationMilliseconds: 180_000,
+          played: true
+        )
+      ),
+      hlc: HLCTimestamp(wallMilliseconds: 101, counter: 0),
+      createdAtMilliseconds: 101
+    )
+    _ = try await store.recordLocalMutation(
+      .queueEntry(
+        QueueEntryState(
+          episodeKey: second.episodeKey,
+          orderToken: try FractionalIndex(rawValue: "8000000000000000"),
+          present: true
+        )
+      ),
+      hlc: HLCTimestamp(wallMilliseconds: 102, counter: 0),
+      createdAtMilliseconds: 102
+    )
+    try await store.saveLocalMediaRecord(
+      LocalMediaRecord(
+        episodeKey: second.episodeKey,
+        state: .queued,
+        taskIdentifier: 7,
+        updatedAtMilliseconds: 103
+      )
+    )
+    try await store.saveLocalMediaRecord(
+      LocalMediaRecord(
+        episodeKey: second.episodeKey,
+        state: .completed,
+        localRelativePath: "Media/two.mp3",
+        downloadedBytes: 100,
+        contentLength: 100,
+        checksumSHA256: String(repeating: "a", count: 64),
+        updatedAtMilliseconds: 104
+      )
+    )
+
+    let matching = try await store.libraryEpisodes(
+      criteria: EpisodeListCriteria(
+        favorite: true,
+        playback: .played,
+        queue: .queued,
+        download: .downloaded,
+        media: .hasMedia
+      ),
+      sort: .episodeTitleAscending
+    )
+    let excluded = try await store.libraryEpisodes(
+      criteria: EpisodeListCriteria(
+        favorite: true,
+        playback: .played,
+        queue: .notQueued
+      ),
+      sort: .newestFirst
+    )
+    let inProgress = try await store.libraryEpisodes(
+      criteria: EpisodeListCriteria(playback: .inProgress),
+      sort: .newestFirst
+    )
+
+    #expect(matching.map(\.episodeKey) == [second.episodeKey])
+    #expect(excluded.isEmpty)
+    #expect(inProgress.isEmpty)
+    #expect(first.episodeKey != second.episodeKey)
+  }
+
+  @Test
+  func advancedSortsUseStableEpisodePodcastDateAndDurationOrdering() async throws {
+    let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
+    let fixture = try fixture()
+    _ = try await store.saveInitialSubscription(
+      feed: fixture.feed,
+      episodes: fixture.episodes,
+      markNewEpisodesInbox: false,
+      hlc: HLCTimestamp(wallMilliseconds: 100, counter: 0),
+      timestampMilliseconds: 100
+    )
+
+    #expect(
+      try await store.libraryEpisodes(
+        criteria: .all,
+        sort: .episodeTitleDescending
+      ).map(\.title) == ["Episode Two", "Episode One"]
+    )
+    #expect(
+      try await store.libraryEpisodes(
+        criteria: .all,
+        sort: .durationShortestFirst
+      ).map(\.title) == ["Episode One", "Episode Two"]
+    )
+    #expect(
+      try await store.libraryEpisodes(
+        criteria: .all,
+        sort: .durationLongestFirst
+      ).map(\.title) == ["Episode Two", "Episode One"]
+    )
+    #expect(
+      try await store.libraryEpisodes(
+        criteria: .all,
+        sort: .podcastTitleAscending
+      ).map(\.title) == ["Episode One", "Episode Two"]
+    )
+  }
+
+  @Test
+  func batchLocalFlagsAreAtomicAndDeduplicateEpisodeKeys() async throws {
+    let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
+    let fixture = try fixture()
+    _ = try await store.saveInitialSubscription(
+      feed: fixture.feed,
+      episodes: fixture.episodes,
+      markNewEpisodesInbox: false,
+      hlc: HLCTimestamp(wallMilliseconds: 100, counter: 0),
+      timestampMilliseconds: 100
+    )
+    let keys = fixture.episodes.map(\.episodeKey)
+
+    try await store.setInbox(true, for: [keys[0], keys[0], keys[1]])
+    try await store.setFavorite(true, for: keys)
+    try await store.setEpisodeArchived(true, for: keys)
+
+    #expect(
+      try await store.libraryEpisodes(filter: .inbox, sort: .newestFirst).map(\.episodeKey)
+        == keys.reversed()
+    )
+    #expect(
+      try await store.libraryEpisodes(filter: .favorites, sort: .newestFirst).map(\.episodeKey)
+        == keys.reversed()
+    )
+    #expect(
+      try await store.libraryEpisodes(filter: .archived, sort: .newestFirst).map(\.episodeKey)
+        == keys.reversed()
+    )
+
+    await #expect(throws: LocalDataError.episodeNotFound) {
+      try await store.setInbox(false, for: [keys[0], EpisodeKey(rawValue: "missing")])
+    }
+    #expect((try await store.libraryEpisode(for: keys[0]))?.inbox == true)
+  }
+
+  @Test
+  func batchPlaybackMutationsCommitOrRollBackAsOneTransaction() async throws {
+    let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
+    let fixture = try fixture()
+    _ = try await store.saveInitialSubscription(
+      feed: fixture.feed,
+      episodes: fixture.episodes,
+      markNewEpisodesInbox: false,
+      hlc: HLCTimestamp(wallMilliseconds: 100, counter: 0),
+      timestampMilliseconds: 100
+    )
+    let requests = fixture.episodes.map {
+      PlaybackMutationInput(
+        episodeKey: $0.episodeKey,
+        intent: .markPlayed,
+        positionMilliseconds: $0.durationMilliseconds ?? 0,
+        durationMilliseconds: $0.durationMilliseconds,
+        played: true
+      )
+    }
+
+    let mutations = try await store.recordPlaybackMutations(
+      requests,
+      hlc: HLCTimestamp(wallMilliseconds: 101, counter: 0),
+      createdAtMilliseconds: 101
+    )
+
+    #expect(mutations.count == 2)
+    #expect(
+      try await store.libraryEpisodes(
+        criteria: EpisodeListCriteria(playback: .played),
+        sort: .newestFirst
+      ).count == 2
+    )
+    let sequenceBeforeFailure = (try await store.syncCursor()).lastLocalSequence
+    await #expect(throws: LocalDataError.episodeNotFound) {
+      try await store.recordPlaybackMutations(
+        [
+          PlaybackMutationInput(
+            episodeKey: fixture.episodes[0].episodeKey,
+            intent: .markUnplayed,
+            positionMilliseconds: 0,
+            durationMilliseconds: fixture.episodes[0].durationMilliseconds,
+            played: false
+          ),
+          PlaybackMutationInput(
+            episodeKey: EpisodeKey(rawValue: "missing"),
+            intent: .markPlayed,
+            positionMilliseconds: 0,
+            durationMilliseconds: nil,
+            played: true
+          ),
+        ],
+        hlc: HLCTimestamp(wallMilliseconds: 102, counter: 0),
+        createdAtMilliseconds: 102
+      )
+    }
+    #expect((try await store.libraryEpisode(for: fixture.episodes[0].episodeKey))?.played == true)
+    #expect((try await store.syncCursor()).lastLocalSequence == sequenceBeforeFailure)
+  }
+
+  @Test
   func outboxFailureRollsBackInitialFeedAndEpisodes() async throws {
     let directory = try temporaryDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }

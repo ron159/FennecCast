@@ -232,9 +232,73 @@ public enum EpisodeListFilter: Equatable, Sendable {
   case archived
 }
 
-public enum EpisodeListSort: Equatable, Sendable {
+public enum EpisodePlaybackFilter: CaseIterable, Equatable, Hashable, Sendable {
+  case any
+  case played
+  case unplayed
+  case inProgress
+  case notInProgress
+}
+
+public enum EpisodeQueueFilter: CaseIterable, Equatable, Hashable, Sendable {
+  case any
+  case queued
+  case notQueued
+}
+
+public enum EpisodeDownloadFilter: CaseIterable, Equatable, Hashable, Sendable {
+  case any
+  case downloaded
+  case notDownloaded
+}
+
+public enum EpisodeMediaFilter: CaseIterable, Equatable, Hashable, Sendable {
+  case any
+  case hasMedia
+  case noMedia
+}
+
+public struct EpisodeListCriteria: Equatable, Hashable, Sendable {
+  public static let all = EpisodeListCriteria()
+
+  public var inbox: Bool?
+  public var favorite: Bool?
+  public var archived: Bool?
+  public var playback: EpisodePlaybackFilter
+  public var queue: EpisodeQueueFilter
+  public var download: EpisodeDownloadFilter
+  public var media: EpisodeMediaFilter
+
+  public init(
+    inbox: Bool? = nil,
+    favorite: Bool? = nil,
+    archived: Bool? = nil,
+    playback: EpisodePlaybackFilter = .any,
+    queue: EpisodeQueueFilter = .any,
+    download: EpisodeDownloadFilter = .any,
+    media: EpisodeMediaFilter = .any
+  ) {
+    self.inbox = inbox
+    self.favorite = favorite
+    self.archived = archived
+    self.playback = playback
+    self.queue = queue
+    self.download = download
+    self.media = media
+  }
+
+  public var isEmpty: Bool { self == .all }
+}
+
+public enum EpisodeListSort: CaseIterable, Equatable, Hashable, Sendable {
   case newestFirst
   case oldestFirst
+  case episodeTitleAscending
+  case episodeTitleDescending
+  case podcastTitleAscending
+  case podcastTitleDescending
+  case durationShortestFirst
+  case durationLongestFirst
 }
 
 public struct FeedRefreshResult: Equatable, Sendable {

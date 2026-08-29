@@ -59,10 +59,24 @@ extension LocalDataStore {
     feedKey: FeedKey? = nil,
     limit: Int = 500
   ) async throws -> [StoredEpisode] {
+    try await libraryEpisodes(
+      criteria: Self.criteria(for: filter),
+      sort: sort,
+      feedKey: feedKey,
+      limit: limit
+    )
+  }
+
+  public func libraryEpisodes(
+    criteria: EpisodeListCriteria,
+    sort: EpisodeListSort,
+    feedKey: FeedKey? = nil,
+    limit: Int = 500
+  ) async throws -> [StoredEpisode] {
     guard (1...1_000).contains(limit) else {
       throw LocalDataError.invalidQueryLimit
     }
-    let filterSQL = Self.filterSQL(filter)
+    let filterSQL = Self.filterSQL(criteria)
     let sortSQL = Self.sortSQL(sort)
 
     return try await writer.read { db in
@@ -144,55 +158,96 @@ extension LocalDataStore {
     }
   }
 
+  public func libraryContainsEpisodes(_ episodeKeys: [EpisodeKey]) async throws -> Bool {
+    let uniqueKeys = Array(Set(episodeKeys)).sorted { $0.rawValue < $1.rawValue }
+    guard !uniqueKeys.isEmpty else { return true }
+    return try await writer.read { db in
+      for start in stride(from: 0, to: uniqueKeys.count, by: 500) {
+        let end = min(start + 500, uniqueKeys.count)
+        let keys = uniqueKeys[start..<end]
+        let placeholders = Array(repeating: "?", count: keys.count).joined(separator: ", ")
+        let count =
+          try Int.fetchOne(
+            db,
+            sql: "SELECT COUNT(*) FROM episodes WHERE episode_key IN (\(placeholders))",
+            arguments: StatementArguments(keys.map(\.rawValue))
+          ) ?? 0
+        guard count == keys.count else { return false }
+      }
+      return true
+    }
+  }
+
   public func setInbox(_ isInbox: Bool, for episodeKey: EpisodeKey) async throws {
-    try await updateLocalEpisodeFlag("inbox", value: isInbox, episodeKey: episodeKey)
+    try await setInbox(isInbox, for: [episodeKey])
+  }
+
+  public func setInbox(_ isInbox: Bool, for episodeKeys: [EpisodeKey]) async throws {
+    try await updateLocalEpisodeFlag("inbox", value: isInbox, episodeKeys: episodeKeys)
   }
 
   public func setFavorite(_ isFavorite: Bool, for episodeKey: EpisodeKey) async throws {
-    try await updateLocalEpisodeFlag("favorite", value: isFavorite, episodeKey: episodeKey)
+    try await setFavorite(isFavorite, for: [episodeKey])
+  }
+
+  public func setFavorite(_ isFavorite: Bool, for episodeKeys: [EpisodeKey]) async throws {
+    try await updateLocalEpisodeFlag("favorite", value: isFavorite, episodeKeys: episodeKeys)
   }
 
   public func setEpisodeArchived(
     _ isArchived: Bool,
     for episodeKey: EpisodeKey
   ) async throws {
-    try await updateLocalEpisodeFlag("archived", value: isArchived, episodeKey: episodeKey)
+    try await setEpisodeArchived(isArchived, for: [episodeKey])
+  }
+
+  public func setEpisodeArchived(
+    _ isArchived: Bool,
+    for episodeKeys: [EpisodeKey]
+  ) async throws {
+    try await updateLocalEpisodeFlag("archived", value: isArchived, episodeKeys: episodeKeys)
   }
 
   private func updateLocalEpisodeFlag(
     _ column: String,
     value: Bool,
-    episodeKey: EpisodeKey
+    episodeKeys: [EpisodeKey]
   ) async throws {
+    let uniqueKeys = Array(Set(episodeKeys)).sorted { $0.rawValue < $1.rawValue }
+    guard !uniqueKeys.isEmpty else { return }
     try await writer.write { db in
-      let episodeExists =
-        try Bool.fetchOne(
+      let placeholders = Array(repeating: "?", count: uniqueKeys.count).joined(separator: ", ")
+      let arguments = StatementArguments(uniqueKeys.map(\.rawValue))
+      let existingCount =
+        try Int.fetchOne(
           db,
-          sql: "SELECT EXISTS(SELECT 1 FROM episodes WHERE episode_key = ?)",
-          arguments: [episodeKey.rawValue]
-        ) ?? false
-      guard episodeExists else {
+          sql: "SELECT COUNT(*) FROM episodes WHERE episode_key IN (\(placeholders))",
+          arguments: arguments
+        ) ?? 0
+      guard existingCount == uniqueKeys.count else {
         throw LocalDataError.episodeNotFound
       }
-      try db.execute(
-        sql: "INSERT INTO episode_state(episode_key) VALUES (?) ON CONFLICT DO NOTHING",
-        arguments: [episodeKey.rawValue]
-      )
+      for episodeKey in uniqueKeys {
+        try db.execute(
+          sql: "INSERT INTO episode_state(episode_key) VALUES (?) ON CONFLICT DO NOTHING",
+          arguments: [episodeKey.rawValue]
+        )
+      }
       switch column {
       case "inbox":
         try db.execute(
-          sql: "UPDATE episode_state SET inbox = ? WHERE episode_key = ?",
-          arguments: [value, episodeKey.rawValue]
+          sql: "UPDATE episode_state SET inbox = ? WHERE episode_key IN (\(placeholders))",
+          arguments: StatementArguments([value] + uniqueKeys.map(\.rawValue))
         )
       case "favorite":
         try db.execute(
-          sql: "UPDATE episode_state SET favorite = ? WHERE episode_key = ?",
-          arguments: [value, episodeKey.rawValue]
+          sql: "UPDATE episode_state SET favorite = ? WHERE episode_key IN (\(placeholders))",
+          arguments: StatementArguments([value] + uniqueKeys.map(\.rawValue))
         )
       case "archived":
         try db.execute(
-          sql: "UPDATE episode_state SET archived = ? WHERE episode_key = ?",
-          arguments: [value, episodeKey.rawValue]
+          sql: "UPDATE episode_state SET archived = ? WHERE episode_key IN (\(placeholders))",
+          arguments: StatementArguments([value] + uniqueKeys.map(\.rawValue))
         )
       default:
         throw LocalDataError.corruptRecord("unsupported local episode flag")
@@ -260,19 +315,77 @@ extension LocalDataStore {
     return try requiredURL(value, field: field)
   }
 
-  private static func filterSQL(_ filter: EpisodeListFilter) -> String {
+  private static func criteria(for filter: EpisodeListFilter) -> EpisodeListCriteria {
     switch filter {
     case .all:
-      "1 = 1"
+      .all
     case .inbox:
-      "COALESCE(s.inbox, 0) = 1"
+      EpisodeListCriteria(inbox: true)
     case .favorites:
-      "COALESCE(s.favorite, 0) = 1"
+      EpisodeListCriteria(favorite: true)
     case .unplayed:
-      "COALESCE(s.played, 0) = 0"
+      EpisodeListCriteria(playback: .unplayed)
     case .archived:
-      "COALESCE(s.archived, 0) = 1"
+      EpisodeListCriteria(archived: true)
     }
+  }
+
+  private static func filterSQL(_ criteria: EpisodeListCriteria) -> String {
+    var conditions = ["1 = 1"]
+    if let inbox = criteria.inbox {
+      conditions.append("COALESCE(s.inbox, 0) = \(inbox ? 1 : 0)")
+    }
+    if let favorite = criteria.favorite {
+      conditions.append("COALESCE(s.favorite, 0) = \(favorite ? 1 : 0)")
+    }
+    if let archived = criteria.archived {
+      conditions.append("COALESCE(s.archived, 0) = \(archived ? 1 : 0)")
+    }
+    switch criteria.playback {
+    case .any:
+      break
+    case .played:
+      conditions.append("COALESCE(s.played, 0) = 1")
+    case .unplayed:
+      conditions.append("COALESCE(s.played, 0) = 0")
+    case .inProgress:
+      conditions.append("COALESCE(s.played, 0) = 0 AND COALESCE(s.position_ms, 0) > 0")
+    case .notInProgress:
+      conditions.append("COALESCE(s.position_ms, 0) = 0")
+    }
+    switch criteria.queue {
+    case .any:
+      break
+    case .queued:
+      conditions.append(
+        "EXISTS (SELECT 1 FROM queue_entries q WHERE q.episode_key = e.episode_key AND q.present = 1)"
+      )
+    case .notQueued:
+      conditions.append(
+        "NOT EXISTS (SELECT 1 FROM queue_entries q WHERE q.episode_key = e.episode_key AND q.present = 1)"
+      )
+    }
+    switch criteria.download {
+    case .any:
+      break
+    case .downloaded:
+      conditions.append(
+        "EXISTS (SELECT 1 FROM media_local m WHERE m.episode_key = e.episode_key AND m.download_state = 'completed')"
+      )
+    case .notDownloaded:
+      conditions.append(
+        "NOT EXISTS (SELECT 1 FROM media_local m WHERE m.episode_key = e.episode_key AND m.download_state = 'completed')"
+      )
+    }
+    switch criteria.media {
+    case .any:
+      break
+    case .hasMedia:
+      conditions.append("e.enclosure_url IS NOT NULL")
+    case .noMedia:
+      conditions.append("e.enclosure_url IS NULL")
+    }
+    return conditions.joined(separator: " AND ")
   }
 
   private static func sortSQL(_ sort: EpisodeListSort) -> String {
@@ -281,6 +394,18 @@ extension LocalDataStore {
       "e.publication_date_ms IS NULL ASC, e.publication_date_ms DESC, e.episode_key ASC"
     case .oldestFirst:
       "e.publication_date_ms IS NULL ASC, e.publication_date_ms ASC, e.episode_key ASC"
+    case .episodeTitleAscending:
+      "e.title COLLATE NOCASE ASC, e.episode_key ASC"
+    case .episodeTitleDescending:
+      "e.title COLLATE NOCASE DESC, e.episode_key ASC"
+    case .podcastTitleAscending:
+      "f.title COLLATE NOCASE ASC, e.publication_date_ms IS NULL ASC, e.publication_date_ms ASC, e.episode_key ASC"
+    case .podcastTitleDescending:
+      "f.title COLLATE NOCASE DESC, e.publication_date_ms IS NULL ASC, e.publication_date_ms ASC, e.episode_key ASC"
+    case .durationShortestFirst:
+      "e.duration_ms IS NULL ASC, e.duration_ms ASC, e.episode_key ASC"
+    case .durationLongestFirst:
+      "e.duration_ms IS NULL ASC, e.duration_ms DESC, e.episode_key ASC"
     }
   }
 }
