@@ -4,6 +4,7 @@
 # Xcode user state and build output
 build/
 DerivedData/
+artifacts/
 *.xcuserstate
 xcuserdata/
 *.moved-aside
@@ -23,4 +24,3 @@ xcuserdata/
 *.p12
 *.pem
 *.provisionprofile
-
