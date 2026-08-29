@@ -26,7 +26,7 @@
 
 - [x] Add focused SwiftUI files for podcast settings, statistics, video, and restore.
 - [x] Add English and Simplified Chinese localizations.
-- [ ] Add CarPlay template scene, bounded content, entitlement, and scene manifest.
+- [x] Add CarPlay template scene, bounded content, entitlement, and scene manifest.
 
 ## Closeout
 

@@ -77,6 +77,40 @@ final class AppFoundationTests: XCTestCase {
     )
   }
 
+  func testCarPlayContentBoundsRespectSystemMaximums() {
+    XCTAssertEqual(
+      CarPlayContentLimit.boundedCount(requested: 500, systemMaximum: 100),
+      100
+    )
+    XCTAssertEqual(
+      CarPlayContentLimit.boundedCount(requested: -1, systemMaximum: 100),
+      0
+    )
+    XCTAssertEqual(
+      CarPlayContentLimit.boundedCount(requested: 4, systemMaximum: 0),
+      0
+    )
+  }
+
+  func testCarPlaySceneIsDeclaredInTheApplicationManifest() throws {
+    let manifest = try XCTUnwrap(
+      Bundle.main.object(forInfoDictionaryKey: "UIApplicationSceneManifest")
+        as? [String: Any]
+    )
+    let configurations = try XCTUnwrap(
+      manifest["UISceneConfigurations"] as? [String: Any]
+    )
+    let scenes = try XCTUnwrap(
+      configurations["CPTemplateApplicationSceneSessionRoleApplication"]
+        as? [[String: Any]]
+    )
+
+    XCTAssertEqual(
+      scenes.first?["UISceneDelegateClassName"] as? String,
+      "FennecCast.CarPlaySceneDelegate"
+    )
+  }
+
   func testEnvironmentPreservesInjectedAppName() {
     let environment = AppEnvironment(
       appName: "Preview Cast",

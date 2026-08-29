@@ -23,6 +23,7 @@
 		A1000000000000000000000E /* ImportExportFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000009 /* ImportExportFeature */; };
 		A1000000000000000000000F /* VideoPlayerSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* VideoPlayerSurface.swift */; };
 		A10000000000000000000010 /* AdvancedFeaturesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000010 /* AdvancedFeaturesView.swift */; };
+		A10000000000000000000011 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* CarPlaySceneDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,6 +47,8 @@
 		A20000000000000000000008 /* FennecCastTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FennecCastTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000009 /* VideoPlayerSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerSurface.swift; sourceTree = "<group>"; };
 		A20000000000000000000010 /* AdvancedFeaturesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedFeaturesView.swift; sourceTree = "<group>"; };
+		A20000000000000000000011 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
+		A20000000000000000000012 /* FennecCast.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FennecCast.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +103,7 @@
 				A20000000000000000000003 /* RootView.swift */,
 				A20000000000000000000009 /* VideoPlayerSurface.swift */,
 				A20000000000000000000010 /* AdvancedFeaturesView.swift */,
+				A20000000000000000000011 /* CarPlaySceneDelegate.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -118,6 +122,7 @@
 			children = (
 				A20000000000000000000006 /* Assets.xcassets */,
 				A20000000000000000000005 /* Localizable.xcstrings */,
+				A20000000000000000000012 /* FennecCast.entitlements */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -249,6 +254,7 @@
 				A10000000000000000000003 /* RootView.swift in Sources */,
 				A1000000000000000000000F /* VideoPlayerSurface.swift in Sources */,
 				A10000000000000000000010 /* AdvancedFeaturesView.swift in Sources */,
+				A10000000000000000000011 /* CarPlaySceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -358,6 +364,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Sources/Resources/FennecCast.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -384,6 +391,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Sources/Resources/FennecCast.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
