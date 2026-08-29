@@ -153,12 +153,177 @@ struct QueueServiceTests {
     try await store.close()
   }
 
+  @Test
+  func exactReorderPersistsTheRequestedOrderAndRejectsInvalidKeySets() async throws {
+    let fixture = try await Fixture.make()
+    let service = QueueService(store: fixture.store, timeMilliseconds: { 6_000 })
+    for key in fixture.keys.prefix(3) {
+      _ = try await service.enqueue(key, at: .tail)
+    }
+    let desired = [fixture.keys[2], fixture.keys[0], fixture.keys[1]]
+
+    let mutations = try await service.reorder(desired)
+
+    #expect(!mutations.isEmpty)
+    #expect(try await service.currentQueue().map(\.episodeKey) == desired)
+    #expect(try await service.reorder(desired).isEmpty)
+    await #expect(throws: QueueServiceError.invalidReorder) {
+      try await service.reorder([fixture.keys[0], fixture.keys[0], fixture.keys[1]])
+    }
+    await #expect(throws: QueueServiceError.invalidReorder) {
+      try await service.reorder([fixture.keys[0], fixture.keys[1]])
+    }
+    await #expect(throws: QueueServiceError.invalidReorder) {
+      try await service.reorder([fixture.keys[0], fixture.keys[1], fixture.keys[3]])
+    }
+    #expect(try await service.currentQueue().map(\.episodeKey) == desired)
+  }
+
+  @Test
+  func batchRemoveIsAtomicAndDeduplicatesSelectedKeys() async throws {
+    let fixture = try await Fixture.make()
+    let service = QueueService(store: fixture.store, timeMilliseconds: { 7_000 })
+    for key in fixture.keys.prefix(3) {
+      _ = try await service.enqueue(key, at: .tail)
+    }
+
+    let removals = try await service.remove([
+      fixture.keys[0], fixture.keys[0], fixture.keys[2],
+    ])
+
+    #expect(removals.count == 2)
+    #expect(try await service.currentQueue().map(\.episodeKey) == [fixture.keys[1]])
+    await #expect(throws: QueueServiceError.entryNotQueued) {
+      try await service.remove([fixture.keys[1], fixture.keys[3]])
+    }
+    #expect(try await service.currentQueue().map(\.episodeKey) == [fixture.keys[1]])
+  }
+
+  @Test
+  func batchEnqueueIsAtomicAndDeduplicatesSelectedKeys() async throws {
+    let fixture = try await Fixture.make()
+    let service = QueueService(store: fixture.store, timeMilliseconds: { 8_000 })
+
+    let additions = try await service.enqueue([
+      fixture.keys[0], fixture.keys[0], fixture.keys[2],
+    ])
+
+    #expect(additions.count == 2)
+    #expect(
+      try await service.currentQueue().map(\.episodeKey)
+        == [fixture.keys[0], fixture.keys[2]]
+    )
+    await #expect(throws: LocalDataError.episodeNotFound) {
+      try await service.enqueue([fixture.keys[1], EpisodeKey(rawValue: "missing")])
+    }
+    #expect(
+      try await service.currentQueue().map(\.episodeKey)
+        == [fixture.keys[0], fixture.keys[2]]
+    )
+  }
+
+  @Test
+  func queueSorterSupportsMetadataOrdersAndDeterministicSmartShuffle() throws {
+    let items = try [
+      queueItem(feed: "a", episode: "a1", publication: 1, duration: 30),
+      queueItem(feed: "a", episode: "a2", publication: 2, duration: 20),
+      queueItem(feed: "a", episode: "a3", publication: 3, duration: 10),
+      queueItem(feed: "b", episode: "b1", publication: 4, duration: 40),
+      queueItem(feed: "b", episode: "b2", publication: 5, duration: 50),
+      queueItem(feed: "c", episode: "c1", publication: 6, duration: 60),
+    ]
+
+    #expect(
+      QueueSorter.sortedEpisodeKeys(items, by: .durationShortestFirst).map(\.rawValue)
+        == ["a3", "a2", "a1", "b1", "b2", "c1"]
+    )
+    #expect(
+      QueueSorter.sortedEpisodeKeys(items, by: .episodeTitleDescending).map(\.rawValue)
+        == ["c1", "b2", "b1", "a3", "a2", "a1"]
+    )
+    let shuffled = QueueSorter.sortedEpisodeKeys(items, by: .smartShuffleOldestFirst)
+    #expect(shuffled == QueueSorter.sortedEpisodeKeys(items, by: .smartShuffleOldestFirst))
+    #expect(Set(shuffled) == Set(items.map(\.episodeKey)))
+    #expect(shuffled.map(\.rawValue) == ["b1", "a1", "a2", "b2", "a3", "c1"])
+
+    let missing = try queueItemWithoutMetadata(episode: "missing")
+    let itemsWithMissingMetadata = items + [missing]
+    #expect(
+      QueueSorter.sortedEpisodeKeys(itemsWithMissingMetadata, by: .oldestFirst).last
+        == missing.episodeKey
+    )
+    #expect(
+      QueueSorter.sortedEpisodeKeys(itemsWithMissingMetadata, by: .durationShortestFirst).last
+        == missing.episodeKey
+    )
+    #expect(
+      QueueSorter.sortedEpisodeKeys(itemsWithMissingMetadata, by: .episodeTitleDescending).last
+        == missing.episodeKey
+    )
+  }
+
   private func temporaryDirectory() throws -> URL {
     let url = FileManager.default.temporaryDirectory
       .appendingPathComponent("FennecCast-Queue-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
   }
+}
+
+private func queueItem(
+  feed: String,
+  episode: String,
+  publication: Int64,
+  duration: Int64
+) throws -> StoredQueueItem {
+  let feedKey = FeedKey(rawValue: feed)
+  let episodeKey = EpisodeKey(rawValue: episode)
+  return StoredQueueItem(
+    state: VersionedState(
+      value: QueueEntryState(
+        episodeKey: episodeKey,
+        orderToken: try FractionalIndex(rawValue: String(format: "%016llx", publication)),
+        present: true
+      ),
+      version: VersionStamp(timestamp: .zero, deviceID: try DeviceID("ios-phone"))
+    ),
+    episode: StoredEpisode(
+      metadata: EpisodeMetadata(
+        episodeKey: episodeKey,
+        feedKey: feedKey,
+        guid: episode,
+        enclosureURL: nil,
+        linkURL: nil,
+        title: episode,
+        publicationDateMilliseconds: publication,
+        durationMilliseconds: duration,
+        summaryHTML: nil,
+        mimeType: "audio/mpeg"
+      ),
+      feedTitle: feed,
+      inbox: false,
+      favorite: false,
+      archived: false,
+      played: false,
+      positionMilliseconds: 0,
+      playedDurationMilliseconds: 0
+    )
+  )
+}
+
+private func queueItemWithoutMetadata(episode: String) throws -> StoredQueueItem {
+  let episodeKey = EpisodeKey(rawValue: episode)
+  return StoredQueueItem(
+    state: VersionedState(
+      value: QueueEntryState(
+        episodeKey: episodeKey,
+        orderToken: try FractionalIndex(rawValue: "fffffffffffffffe"),
+        present: true
+      ),
+      version: VersionStamp(timestamp: .zero, deviceID: try DeviceID("ios-phone"))
+    ),
+    episode: nil
+  )
 }
 
 private struct Fixture {
