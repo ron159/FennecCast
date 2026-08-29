@@ -11,8 +11,8 @@
 - [x] Write candidate/cleanup policy tests and observe RED.
 - [x] Implement bounded auto-download and protected cleanup.
 - [x] Wire foreground and refreshed-feed triggers.
-- [ ] Write playback override tests and implement speed/intro/ending rules.
-- [ ] Share AVPlayer with an AVKit video view.
+- [x] Write playback override tests and implement speed/intro/ending rules.
+- [x] Share AVPlayer with an AVKit video view.
 
 ## Auth and restore
 

@@ -28,6 +28,7 @@ public struct PlaybackItem: Equatable, Sendable {
   public let title: String
   public let podcastTitle: String
   public let durationMilliseconds: Int64?
+  public let isVideo: Bool
   public let chapters: [PlaybackChapter]
 
   public init(
@@ -36,6 +37,7 @@ public struct PlaybackItem: Equatable, Sendable {
     title: String,
     podcastTitle: String,
     durationMilliseconds: Int64?,
+    isVideo: Bool = false,
     chapters: [PlaybackChapter] = []
   ) {
     self.episodeKey = episodeKey
@@ -43,6 +45,7 @@ public struct PlaybackItem: Equatable, Sendable {
     self.title = title
     self.podcastTitle = podcastTitle
     self.durationMilliseconds = durationMilliseconds
+    self.isVideo = isVideo
     self.chapters = chapters
   }
 }

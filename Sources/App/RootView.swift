@@ -1483,11 +1483,20 @@ private struct PlayerView: View {
     NavigationStack {
       VStack(spacing: 28) {
         Spacer()
-        Image(systemName: "waveform.circle.fill")
-          .resizable()
-          .scaledToFit()
-          .frame(width: 180, height: 180)
-          .foregroundStyle(.tint)
+        if model.playback.item?.isVideo == true,
+          let player = model.environment.mediaPlayer
+        {
+          VideoPlayerSurface(player: player)
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal)
+        } else {
+          Image(systemName: "waveform.circle.fill")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 180, height: 180)
+            .foregroundStyle(.tint)
+        }
         VStack(spacing: 8) {
           Text(model.playback.item?.title ?? "")
             .font(.title2.bold())

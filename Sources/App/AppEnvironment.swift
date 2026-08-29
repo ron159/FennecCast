@@ -1,3 +1,4 @@
+import AVFoundation
 import CoreContracts
 import DownloadsFeature
 import FeedLibrary
@@ -26,6 +27,7 @@ final class AppEnvironment {
   let feedLibraryService: FeedLibraryService?
   let queueService: QueueService?
   let playbackEngine: PlaybackEngine?
+  let mediaPlayer: AVPlayer?
   let systemPlaybackController: SystemPlaybackController?
   let downloadManager: DownloadManager?
   let podcastAutomationService: PodcastAutomationService?
@@ -42,6 +44,7 @@ final class AppEnvironment {
     feedLibraryService: FeedLibraryService? = nil,
     queueService: QueueService? = nil,
     playbackEngine: PlaybackEngine? = nil,
+    mediaPlayer: AVPlayer? = nil,
     systemPlaybackController: SystemPlaybackController? = nil,
     downloadManager: DownloadManager? = nil,
     podcastAutomationService: PodcastAutomationService? = nil,
@@ -57,6 +60,7 @@ final class AppEnvironment {
     self.feedLibraryService = feedLibraryService
     self.queueService = queueService
     self.playbackEngine = playbackEngine
+    self.mediaPlayer = mediaPlayer
     self.systemPlaybackController = systemPlaybackController
     self.downloadManager = downloadManager
     self.podcastAutomationService = podcastAutomationService
@@ -123,10 +127,11 @@ final class AppEnvironment {
         store: store,
         downloadManager: downloadManager
       )
+      let mediaPlayer = AVPlayer()
       let playbackEngine = PlaybackEngine(
         store: store,
         queueService: queueService,
-        driver: AVPlayerPlaybackDriver(),
+        driver: AVPlayerPlaybackDriver(player: mediaPlayer),
         sourceResolver: LocalFirstPlaybackSourceResolver(
           store: store,
           storageRoot: storageRoot
@@ -146,6 +151,7 @@ final class AppEnvironment {
         ),
         queueService: queueService,
         playbackEngine: playbackEngine,
+        mediaPlayer: mediaPlayer,
         systemPlaybackController: SystemPlaybackController(engine: playbackEngine),
         downloadManager: downloadManager,
         podcastAutomationService: podcastAutomationService,

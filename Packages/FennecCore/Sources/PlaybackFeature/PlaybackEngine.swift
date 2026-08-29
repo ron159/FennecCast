@@ -97,6 +97,7 @@ public actor PlaybackEngine {
   private var positionMilliseconds: Int64 = 0
   private var durationMilliseconds: Int64?
   private var rate = PlaybackRate.normal
+  private var skipEndingMilliseconds: Int64 = 0
   private var played = false
   private var generation: UInt64 = 0
   private var lastCheckpointMonotonicMilliseconds: Int64 = 0
@@ -174,13 +175,22 @@ public actor PlaybackEngine {
     }
     let sourceURL = try await sourceResolver.sourceURL(for: episode)
     let storedPlayback = try await store.playbackState(for: episodeKey)?.value
-    let resumePosition =
+    let preferences = try await store.feedPreferences(for: episode.metadata.feedKey)
+    let storedPosition =
       storedPlayback?.played == true
       ? 0
       : storedPlayback?.positionMilliseconds ?? 0
     let knownDuration =
       episode.metadata.durationMilliseconds
       ?? storedPlayback?.durationMilliseconds
+    let resumePosition =
+      storedPosition == 0
+      ? min(preferences.skipIntroMilliseconds, knownDuration ?? Int64.max)
+      : storedPosition
+    if let configuredRate = preferences.playbackRate {
+      rate = try PlaybackRate(configuredRate)
+    }
+    skipEndingMilliseconds = preferences.skipEndingMilliseconds
     if flushExisting, item != nil {
       try await flushCurrent(intent: .playbackPause)
     }
@@ -196,6 +206,7 @@ public actor PlaybackEngine {
       title: episode.title,
       podcastTitle: episode.feedTitle,
       durationMilliseconds: knownDuration,
+      isVideo: Self.isVideoEpisode(episode),
       chapters: []
     )
     positionMilliseconds = resumePosition
@@ -259,6 +270,7 @@ public actor PlaybackEngine {
       title: current.title,
       podcastTitle: current.podcastTitle,
       durationMilliseconds: current.durationMilliseconds,
+      isVideo: current.isVideo,
       chapters: chapters
     )
     publishSnapshot()
@@ -342,6 +354,7 @@ public actor PlaybackEngine {
     try await driver.seek(toMilliseconds: target)
     positionMilliseconds = target
     played = false
+    skipEndingMilliseconds = 0
     try await persist(intent: .seek, played: false)
     lastCheckpointMonotonicMilliseconds = monotonicMilliseconds()
   }
@@ -432,6 +445,15 @@ public actor PlaybackEngine {
       if let newDuration {
         durationMilliseconds = newDuration
       }
+      if let durationMilliseconds,
+        skipEndingMilliseconds > 0,
+        durationMilliseconds > skipEndingMilliseconds,
+        positionMilliseconds >= durationMilliseconds - skipEndingMilliseconds
+      {
+        try await finishCurrentEpisode()
+        publishSnapshot()
+        return
+      }
       let monotonicNow = monotonicMilliseconds()
       if sleepTimer.shouldPause(monotonicNowMilliseconds: monotonicNow) {
         try await pause()
@@ -493,6 +515,7 @@ public actor PlaybackEngine {
 
   private func finishCurrentEpisode() async throws {
     guard let completedItem = item else { return }
+    skipEndingMilliseconds = 0
     if let durationMilliseconds {
       positionMilliseconds = durationMilliseconds
     }
@@ -558,5 +581,14 @@ public actor PlaybackEngine {
 
   private func removeSnapshotContinuation(_ identifier: UUID) {
     snapshotContinuations[identifier] = nil
+  }
+
+  private static func isVideoEpisode(_ episode: StoredEpisode) -> Bool {
+    if episode.metadata.mimeType?.lowercased().hasPrefix("video/") == true {
+      return true
+    }
+    guard let extensionName = episode.metadata.enclosureURL?.pathExtension.lowercased()
+    else { return false }
+    return ["m4v", "mov", "mp4"].contains(extensionName)
   }
 }

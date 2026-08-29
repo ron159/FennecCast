@@ -7,6 +7,61 @@ import Testing
 
 struct PlaybackEngineTests {
   @Test
+  func appliesPerPodcastPlaybackRulesAndFinishesAtSkippedEnding() async throws {
+    let fixture = try await Fixture.make()
+    try await fixture.store.saveFeedPreferences(
+      FeedPreferences(
+        playbackRate: 1.5,
+        skipIntroMilliseconds: 30_000,
+        skipEndingMilliseconds: 20_000
+      ),
+      for: fixture.feedKey
+    )
+    _ = try await fixture.queue.enqueue(fixture.keys[0], at: .tail)
+    _ = try await fixture.queue.enqueue(fixture.keys[1], at: .tail)
+    let driver = DriverSpy()
+    let engine = PlaybackEngine(
+      store: fixture.store,
+      queueService: fixture.queue,
+      driver: driver,
+      timeMilliseconds: { 9_000 }
+    )
+
+    try await engine.load(fixture.keys[0], autoplay: true)
+
+    let firstLoad = try #require(await driver.lastLoad())
+    #expect(firstLoad.positionMilliseconds == 30_000)
+    #expect(firstLoad.rate == (try PlaybackRate(1.5)))
+    #expect((await engine.snapshot()).rate == (try PlaybackRate(1.5)))
+
+    try await engine.handleDriverEvent(
+      .progress(
+        generation: firstLoad.generation,
+        positionMilliseconds: 100_000,
+        durationMilliseconds: 120_000
+      )
+    )
+
+    #expect((await engine.snapshot()).item?.episodeKey == fixture.keys[1])
+    #expect((await driver.lastLoad())?.positionMilliseconds == 30_000)
+    #expect((try await fixture.store.playbackState(for: fixture.keys[0]))?.value.played == true)
+  }
+
+  @Test
+  func identifiesVideoEpisodesWithoutCreatingAnotherPlaybackSession() async throws {
+    let fixture = try await Fixture.make(mimeType: "video/mp4")
+    let engine = PlaybackEngine(
+      store: fixture.store,
+      queueService: fixture.queue,
+      driver: DriverSpy()
+    )
+
+    try await engine.load(fixture.keys[0])
+
+    #expect((await engine.snapshot()).item?.isVideo == true)
+  }
+
+  @Test
   func loadsPersistedPositionAndAppliesCommands() async throws {
     let fixture = try await Fixture.make()
     _ = try await fixture.store.recordPlaybackMutation(
@@ -377,11 +432,13 @@ private final class LockedClock: @unchecked Sendable {
 private struct Fixture {
   let store: LocalDataStore
   let queue: QueueService
+  let feedKey: FeedKey
   let keys: [EpisodeKey]
 
   static func make(
     includeMissingEnclosure: Bool = false,
-    chaptersURL: URL? = nil
+    chaptersURL: URL? = nil,
+    mimeType: String = "audio/mpeg"
   ) async throws -> Fixture {
     let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
     let feedURL = try #require(URL(string: "https://example.com/feed.xml"))
@@ -402,7 +459,7 @@ private struct Fixture {
         publicationDateMilliseconds: Int64(index * 1_000),
         durationMilliseconds: 120_000,
         summaryHTML: nil,
-        mimeType: "audio/mpeg",
+        mimeType: mimeType,
         chaptersURL: chaptersURL,
         chaptersType: chaptersURL == nil ? nil : "application/json+chapters"
       )
@@ -426,6 +483,7 @@ private struct Fixture {
     return Fixture(
       store: store,
       queue: QueueService(store: store, timeMilliseconds: { 5_000 }),
+      feedKey: feedKey,
       keys: keys
     )
   }
