@@ -6,6 +6,42 @@ import Testing
 
 struct FeedLibraryServiceTests {
   @Test
+  func storesRedirectedCredentialsAndReusesThemForRefresh() async throws {
+    let originalURL = try url("https://example.com/old-private.xml")
+    let finalURL = try url("https://example.com/private.xml")
+    let loader = StubFeedLoader(
+      responses: [
+        try response(data: feedFixture, url: finalURL, status: 200),
+        try response(data: Data(), url: finalURL, status: 304),
+      ]
+    )
+    let store = try LocalDataStore.inMemory(deviceID: DeviceID("ios-phone"))
+    let credentials = try FeedCredentials(username: "listener", password: "secret")
+    let credentialStore = MemoryFeedCredentialStore()
+    let service = FeedLibraryService(
+      store: store,
+      httpClient: FeedHTTPClient(loader: loader),
+      credentialStore: credentialStore,
+      timeMilliseconds: { 900 }
+    )
+
+    _ = try await service.addSubscription(
+      from: originalURL,
+      credentials: credentials
+    )
+
+    let finalKey = try FeedKey(canonicalURL: finalURL)
+    #expect(try credentialStore.readCredentials(for: finalKey) == credentials)
+    #expect(try await service.hasCredentials(for: finalKey))
+    #expect(try await service.refresh(feedKey: finalKey) == .notModified)
+    let request = try #require(await loader.requests.last)
+    #expect(request.value(forHTTPHeaderField: "Authorization")?.hasPrefix("Basic ") == true)
+
+    try await service.removeCredentials(for: finalKey)
+    #expect(try credentialStore.readCredentials(for: finalKey) == nil)
+  }
+
+  @Test
   func addSubscriptionUsesFinalRedirectIdentityAndRecordsAlias() async throws {
     let originalURL = try url("https://example.com/old.xml")
     let finalURL = try url("https://example.com/current.xml")
@@ -18,6 +54,7 @@ struct FeedLibraryServiceTests {
     let service = FeedLibraryService(
       store: store,
       httpClient: FeedHTTPClient(loader: loader),
+      credentialStore: MemoryFeedCredentialStore(),
       timeMilliseconds: { 1_000 }
     )
 
@@ -46,6 +83,7 @@ struct FeedLibraryServiceTests {
     let service = FeedLibraryService(
       store: store,
       httpClient: FeedHTTPClient(loader: loader),
+      credentialStore: MemoryFeedCredentialStore(),
       timeMilliseconds: { 1_000 }
     )
     _ = try await service.addSubscription(from: feedURL)
@@ -77,6 +115,7 @@ struct FeedLibraryServiceTests {
     let service = FeedLibraryService(
       store: store,
       httpClient: FeedHTTPClient(loader: loader),
+      credentialStore: MemoryFeedCredentialStore(),
       timeMilliseconds: { 2_000 }
     )
     let feedKey = try FeedKey(canonicalURL: feedURL)
@@ -145,5 +184,24 @@ struct FeedLibraryServiceTests {
 
   private func url(_ value: String) throws -> URL {
     try #require(URL(string: value))
+  }
+}
+
+private final class MemoryFeedCredentialStore: @unchecked Sendable,
+  FeedCredentialStoring
+{
+  private let lock = NSLock()
+  private var values: [FeedKey: FeedCredentials] = [:]
+
+  func readCredentials(for feedKey: FeedKey) throws -> FeedCredentials? {
+    lock.withLock { values[feedKey] }
+  }
+
+  func saveCredentials(_ credentials: FeedCredentials, for feedKey: FeedKey) throws {
+    lock.withLock { values[feedKey] = credentials }
+  }
+
+  func deleteCredentials(for feedKey: FeedKey) throws {
+    lock.withLock { values[feedKey] = nil }
   }
 }

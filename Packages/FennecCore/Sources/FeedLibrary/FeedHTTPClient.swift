@@ -4,17 +4,68 @@ public protocol FeedDataLoading: Sendable {
   func data(for request: URLRequest) async throws -> (Data, URLResponse)
 }
 
-public struct URLSessionFeedLoader: FeedDataLoading {
+public final class URLSessionFeedLoader: FeedDataLoading, @unchecked Sendable {
   private let session: URLSession
+  private let redirectDelegate: FeedRedirectDelegate
 
-  public init(session: URLSession = .shared) {
-    self.session = session
+  public init(configuration: URLSessionConfiguration = .ephemeral) {
+    let redirectDelegate = FeedRedirectDelegate()
+    self.redirectDelegate = redirectDelegate
+    session = URLSession(
+      configuration: configuration,
+      delegate: redirectDelegate,
+      delegateQueue: nil
+    )
   }
 
   public func data(for request: URLRequest) async throws -> (Data, URLResponse) {
     // `data(for:)` creates and resumes a URLSession data task for this request.
     // Source: https://developer.apple.com/documentation/foundation/urlsession/data(for:)
     try await session.data(for: request)
+  }
+
+  static func redirectedRequest(
+    _ request: URLRequest,
+    from originalURL: URL
+  ) -> URLRequest {
+    guard let destinationURL = request.url,
+      Self.origin(of: destinationURL) == Self.origin(of: originalURL)
+    else {
+      var sanitized = request
+      sanitized.setValue(nil, forHTTPHeaderField: "Authorization")
+      return sanitized
+    }
+    return request
+  }
+
+  private static func origin(of url: URL) -> String? {
+    guard
+      let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+      let scheme = components.scheme?.lowercased(),
+      let host = components.host?.lowercased()
+    else { return nil }
+    let port = components.port ?? (scheme == "https" ? 443 : 80)
+    return "\(scheme)://\(host):\(port)"
+  }
+}
+
+private final class FeedRedirectDelegate: NSObject, URLSessionTaskDelegate,
+  @unchecked Sendable
+{
+  func urlSession(
+    _ session: URLSession,
+    task: URLSessionTask,
+    willPerformHTTPRedirection response: HTTPURLResponse,
+    newRequest request: URLRequest,
+    completionHandler: @escaping (URLRequest?) -> Void
+  ) {
+    guard let originalURL = task.originalRequest?.url else {
+      completionHandler(nil)
+      return
+    }
+    completionHandler(
+      URLSessionFeedLoader.redirectedRequest(request, from: originalURL)
+    )
   }
 }
 
@@ -23,6 +74,7 @@ public enum FeedFetchError: Error, Equatable, Sendable {
   case nonHTTPResponse
   case httpStatus(Int)
   case responseTooLarge
+  case insecureAuthentication
 }
 
 public enum FeedFetchResult: Equatable, Sendable {
@@ -52,7 +104,8 @@ public struct FeedHTTPClient: Sendable {
   public func fetch(
     _ url: URL,
     eTag: String? = nil,
-    lastModified: String? = nil
+    lastModified: String? = nil,
+    credentials: FeedCredentials? = nil
   ) async throws -> FeedFetchResult {
     guard Self.isNetworkURL(url) else {
       throw FeedFetchError.invalidURL
@@ -66,6 +119,14 @@ public struct FeedHTTPClient: Sendable {
       "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.1",
       forHTTPHeaderField: "Accept"
     )
+    if let credentials {
+      guard url.scheme?.lowercased() == "https" else {
+        throw FeedFetchError.insecureAuthentication
+      }
+      let value = Data("\(credentials.username):\(credentials.password)".utf8)
+        .base64EncodedString()
+      request.setValue("Basic \(value)", forHTTPHeaderField: "Authorization")
+    }
     if let eTag, !eTag.isEmpty {
       request.setValue(eTag, forHTTPHeaderField: "If-None-Match")
     }
@@ -79,6 +140,9 @@ public struct FeedHTTPClient: Sendable {
     }
     guard let finalURL = response.url, Self.isNetworkURL(finalURL) else {
       throw FeedFetchError.invalidURL
+    }
+    if credentials != nil, finalURL.scheme?.lowercased() != "https" {
+      throw FeedFetchError.insecureAuthentication
     }
     if response.statusCode == 304 {
       return .notModified

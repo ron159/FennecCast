@@ -5,6 +5,64 @@ import Testing
 
 struct FeedHTTPClientTests {
   @Test
+  func sendsBasicCredentialsOnlyForHTTPSAndRedactsTheirDescription() async throws {
+    let feedURL = try url("https://example.com/private.xml")
+    let loader = StubFeedLoader(
+      responses: [try response(data: Data("<rss/>".utf8), url: feedURL, status: 200)]
+    )
+    let credentials = try FeedCredentials(username: "listener", password: "secret")
+
+    _ = try await FeedHTTPClient(loader: loader).fetch(
+      feedURL,
+      credentials: credentials
+    )
+
+    let request = try #require(await loader.requests.first)
+    let expected = Data("listener:secret".utf8).base64EncodedString()
+    #expect(request.value(forHTTPHeaderField: "Authorization") == "Basic \(expected)")
+    #expect(String(describing: credentials) == "<redacted>")
+    #expect(String(reflecting: credentials) == "<redacted>")
+
+    await #expect(throws: FeedFetchError.insecureAuthentication) {
+      try await FeedHTTPClient(loader: loader).fetch(
+        try url("http://example.com/private.xml"),
+        credentials: credentials
+      )
+    }
+  }
+
+  @Test
+  func stripsAuthorizationWhenRedirectChangesOrigin() throws {
+    let originalURL = try url("https://example.com/private.xml")
+    var sameOrigin = URLRequest(url: try url("https://example.com/current.xml"))
+    sameOrigin.setValue("Basic secret", forHTTPHeaderField: "Authorization")
+    var crossOrigin = URLRequest(url: try url("https://cdn.example.com/current.xml"))
+    crossOrigin.setValue("Basic secret", forHTTPHeaderField: "Authorization")
+
+    #expect(
+      URLSessionFeedLoader.redirectedRequest(sameOrigin, from: originalURL)
+        .value(forHTTPHeaderField: "Authorization") == "Basic secret"
+    )
+    #expect(
+      URLSessionFeedLoader.redirectedRequest(crossOrigin, from: originalURL)
+        .value(forHTTPHeaderField: "Authorization") == nil
+    )
+  }
+
+  @Test
+  func validatesCredentialBounds() {
+    #expect(throws: FeedCredentialError.invalidUsername) {
+      try FeedCredentials(username: "", password: "secret")
+    }
+    #expect(throws: FeedCredentialError.invalidUsername) {
+      try FeedCredentials(username: String(repeating: "u", count: 257), password: "secret")
+    }
+    #expect(throws: FeedCredentialError.invalidPassword) {
+      try FeedCredentials(username: "listener", password: String(repeating: "p", count: 1_025))
+    }
+  }
+
+  @Test
   func sendsConditionalHeadersAndReturnsValidatedMetadata() async throws {
     let requestedURL = try url("https://example.com/original.xml")
     let finalURL = try url("https://cdn.example.com/current.xml")

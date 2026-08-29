@@ -35,7 +35,8 @@ let package = Package(
     ),
     .target(
       name: "FeedLibrary",
-      dependencies: ["CoreContracts", "LocalData"]
+      dependencies: ["CoreContracts", "LocalData"],
+      linkerSettings: [.linkedFramework("Security")]
     ),
     .target(
       name: "QueueFeature",

@@ -16,6 +16,7 @@ public actor FeedLibraryService {
   private let store: LocalDataStore
   private let httpClient: FeedHTTPClient
   private let parser: FeedDocumentParser
+  private let credentialStore: any FeedCredentialStoring
   private let timeMilliseconds: @Sendable () -> Int64
   private let clock: StateSyncClock
   private let mutationDidCommit: @Sendable () async -> Void
@@ -24,6 +25,7 @@ public actor FeedLibraryService {
     store: LocalDataStore,
     httpClient: FeedHTTPClient = FeedHTTPClient(),
     parser: FeedDocumentParser = FeedDocumentParser(),
+    credentialStore: any FeedCredentialStoring = KeychainFeedCredentialStore(),
     clock: StateSyncClock = StateSyncClock(),
     mutationDidCommit: @escaping @Sendable () async -> Void = {},
     timeMilliseconds: @escaping @Sendable () -> Int64 = {
@@ -33,6 +35,7 @@ public actor FeedLibraryService {
     self.store = store
     self.httpClient = httpClient
     self.parser = parser
+    self.credentialStore = credentialStore
     self.clock = clock
     self.mutationDidCommit = mutationDidCommit
     self.timeMilliseconds = timeMilliseconds
@@ -40,10 +43,14 @@ public actor FeedLibraryService {
 
   public func addSubscription(
     from requestedURL: URL,
+    credentials: FeedCredentials? = nil,
     markNewEpisodesInbox: Bool = true
   ) async throws -> InitialSubscriptionResult {
     let requestedFeedKey = try FeedKey(canonicalURL: requestedURL)
-    let fetchResult = try await httpClient.fetch(requestedURL)
+    let fetchResult = try await httpClient.fetch(
+      requestedURL,
+      credentials: credentials
+    )
     guard
       case .document(let data, let finalURL, let eTag, let lastModified) = fetchResult
     else {
@@ -53,20 +60,31 @@ public actor FeedLibraryService {
     let finalFeedKey = try FeedKey(canonicalURL: finalURL)
     let timestamp = timeMilliseconds()
     let hlc = try await clock.tick(physicalTimeMilliseconds: timestamp)
-    let result = try await store.saveInitialSubscription(
-      feed: Self.feedMetadata(
-        parsedFeed,
-        feedKey: finalFeedKey,
-        canonicalURL: finalURL,
-        eTag: eTag,
-        lastModified: lastModified
-      ),
-      episodes: try Self.episodeMetadata(parsedFeed.episodes, feedKey: finalFeedKey),
-      markNewEpisodesInbox: markNewEpisodesInbox,
-      hlc: hlc,
-      timestampMilliseconds: timestamp,
-      redirectedFromFeedKey: requestedFeedKey == finalFeedKey ? nil : requestedFeedKey
-    )
+    if let credentials {
+      try saveCredentials(credentials, for: finalFeedKey)
+    }
+    let result: InitialSubscriptionResult
+    do {
+      result = try await store.saveInitialSubscription(
+        feed: Self.feedMetadata(
+          parsedFeed,
+          feedKey: finalFeedKey,
+          canonicalURL: finalURL,
+          eTag: eTag,
+          lastModified: lastModified
+        ),
+        episodes: try Self.episodeMetadata(parsedFeed.episodes, feedKey: finalFeedKey),
+        markNewEpisodesInbox: markNewEpisodesInbox,
+        hlc: hlc,
+        timestampMilliseconds: timestamp,
+        redirectedFromFeedKey: requestedFeedKey == finalFeedKey ? nil : requestedFeedKey
+      )
+    } catch {
+      if credentials != nil {
+        try? credentialStore.deleteCredentials(for: finalFeedKey)
+      }
+      throw error
+    }
     await mutationDidCommit()
     return result
   }
@@ -81,7 +99,8 @@ public actor FeedLibraryService {
     let fetchResult = try await httpClient.fetch(
       storedFeed.metadata.canonicalURL,
       eTag: storedFeed.metadata.eTag,
-      lastModified: storedFeed.metadata.lastModified
+      lastModified: storedFeed.metadata.lastModified,
+      credentials: try readCredentials(for: feedKey)
     )
     guard
       case .document(let data, let finalURL, let eTag, let lastModified) = fetchResult
@@ -128,6 +147,56 @@ public actor FeedLibraryService {
     )
     await mutationDidCommit()
     return mutation
+  }
+
+  public func hasCredentials(for feedKey: FeedKey) async throws -> Bool {
+    guard try await store.feed(for: feedKey) != nil else {
+      throw LocalDataError.feedNotFound
+    }
+    return try readCredentials(for: feedKey) != nil
+  }
+
+  public func updateCredentials(
+    _ credentials: FeedCredentials,
+    for feedKey: FeedKey
+  ) async throws {
+    guard let feed = try await store.feed(for: feedKey) else {
+      throw LocalDataError.feedNotFound
+    }
+    guard feed.metadata.canonicalURL.scheme?.lowercased() == "https" else {
+      throw FeedFetchError.insecureAuthentication
+    }
+    try saveCredentials(credentials, for: feedKey)
+  }
+
+  public func removeCredentials(for feedKey: FeedKey) async throws {
+    guard try await store.feed(for: feedKey) != nil else {
+      throw LocalDataError.feedNotFound
+    }
+    do {
+      try credentialStore.deleteCredentials(for: feedKey)
+    } catch {
+      throw FeedCredentialError.credentialStore
+    }
+  }
+
+  private func readCredentials(for feedKey: FeedKey) throws -> FeedCredentials? {
+    do {
+      return try credentialStore.readCredentials(for: feedKey)
+    } catch {
+      throw FeedCredentialError.credentialStore
+    }
+  }
+
+  private func saveCredentials(
+    _ credentials: FeedCredentials,
+    for feedKey: FeedKey
+  ) throws {
+    do {
+      try credentialStore.saveCredentials(credentials, for: feedKey)
+    } catch {
+      throw FeedCredentialError.credentialStore
+    }
   }
 
   private static func feedMetadata(
