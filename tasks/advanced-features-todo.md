@@ -18,14 +18,14 @@
 
 - [x] Write authenticated request and credential validation tests and observe RED.
 - [x] Implement Keychain feed credentials and safe redirect handling.
-- [ ] Add authenticated add/edit feed workflows.
+- [x] Add authenticated add/edit feed workflows.
 - [x] Write backup validation/staging tests and observe RED.
 - [x] Implement same-device, next-launch database restore.
 
 ## UI and CarPlay
 
-- [ ] Add focused SwiftUI files for podcast settings, statistics, video, and restore.
-- [ ] Add English and Simplified Chinese localizations.
+- [x] Add focused SwiftUI files for podcast settings, statistics, video, and restore.
+- [x] Add English and Simplified Chinese localizations.
 - [ ] Add CarPlay template scene, bounded content, entitlement, and scene manifest.
 
 ## Closeout

@@ -22,6 +22,7 @@
 		A1000000000000000000000D /* StateSyncFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000008 /* StateSyncFeature */; };
 		A1000000000000000000000E /* ImportExportFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000009 /* ImportExportFeature */; };
 		A1000000000000000000000F /* VideoPlayerSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* VideoPlayerSurface.swift */; };
+		A10000000000000000000010 /* AdvancedFeaturesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000010 /* AdvancedFeaturesView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +45,7 @@
 		A20000000000000000000007 /* AppFoundationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFoundationTests.swift; sourceTree = "<group>"; };
 		A20000000000000000000008 /* FennecCastTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FennecCastTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000009 /* VideoPlayerSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerSurface.swift; sourceTree = "<group>"; };
+		A20000000000000000000010 /* AdvancedFeaturesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedFeaturesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +99,7 @@
 				A20000000000000000000002 /* AppEnvironment.swift */,
 				A20000000000000000000003 /* RootView.swift */,
 				A20000000000000000000009 /* VideoPlayerSurface.swift */,
+				A20000000000000000000010 /* AdvancedFeaturesView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -245,6 +248,7 @@
 				A10000000000000000000001 /* FennecCastApp.swift in Sources */,
 				A10000000000000000000003 /* RootView.swift in Sources */,
 				A1000000000000000000000F /* VideoPlayerSurface.swift in Sources */,
+				A10000000000000000000010 /* AdvancedFeaturesView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

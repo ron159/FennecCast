@@ -17,6 +17,7 @@ final class AppModel {
   let environment: AppEnvironment
 
   var feeds: [StoredFeed] = []
+  var feedPreferences: [FeedKey: FeedPreferences] = [:]
   var episodes: [StoredEpisode] = []
   var queue: [StoredQueueItem] = []
   var downloads: [LocalMediaRecord] = []
@@ -123,6 +124,7 @@ final class AppModel {
     guard let store = environment.localDataStore else { return }
     do {
       async let loadedFeeds = store.subscribedFeeds()
+      async let loadedPreferences = store.allFeedPreferences()
       async let loadedEpisodes = store.libraryEpisodes(
         filter: .all,
         sort: .newestFirst,
@@ -130,6 +132,7 @@ final class AppModel {
       )
       async let loadedQueue = store.currentQueue()
       feeds = try await loadedFeeds
+      feedPreferences = try await loadedPreferences
       episodes = try await loadedEpisodes
       queue = try await loadedQueue
     } catch {
@@ -148,7 +151,11 @@ final class AppModel {
     }
   }
 
-  func addSubscription(_ value: String) async -> Bool {
+  func addSubscription(
+    _ value: String,
+    username: String = "",
+    password: String = ""
+  ) async -> Bool {
     guard
       let service = environment.feedLibraryService,
       let url = URL(string: value.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -157,7 +164,12 @@ final class AppModel {
       return false
     }
     return await perform {
-      _ = try await service.addSubscription(from: url)
+      let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+      let credentials =
+        trimmedUsername.isEmpty && password.isEmpty
+        ? nil
+        : try FeedCredentials(username: trimmedUsername, password: password)
+      _ = try await service.addSubscription(from: url, credentials: credentials)
       await reloadLibrary()
     }
   }
@@ -572,7 +584,7 @@ final class AppModel {
     _ = await perform(operation)
   }
 
-  private func present(_ error: any Error) {
+  func present(_ error: any Error) {
     switch error {
     case StateSyncSettingsError.invalidServerURL,
       StateSyncSettingsError.insecureServerURL:
@@ -583,6 +595,19 @@ final class AppModel {
       errorMessage = String(localized: "error.syncAuthentication")
     case StateSyncEngineError.network:
       errorMessage = String(localized: "error.network")
+    case FeedCredentialError.invalidUsername,
+      FeedCredentialError.invalidPassword:
+      errorMessage = String(localized: "error.invalidFeedCredentials")
+    case FeedFetchError.insecureAuthentication:
+      errorMessage = String(localized: "error.insecureFeedCredentials")
+    case DatabaseRestoreError.foreignDevice:
+      errorMessage = String(localized: "restore.error.foreignDevice")
+    case DatabaseRestoreError.backupTooLarge:
+      errorMessage = String(localized: "restore.error.tooLarge")
+    case DatabaseRestoreError.corruptBackup,
+      DatabaseRestoreError.schemaMismatch,
+      DatabaseRestoreError.invalidSource:
+      errorMessage = String(localized: "restore.error.invalid")
     default:
       errorMessage = String(localized: "error.operationFailed")
     }
@@ -750,17 +775,40 @@ private struct EpisodeCollectionView: View {
 private struct SubscriptionsView: View {
   let model: AppModel
   @State private var isAdding = false
+  @State private var selectedTag = ""
+
+  private var availableTags: [String] {
+    Array(Set(model.feedPreferences.values.flatMap(\.tags)))
+      .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+  }
+
+  private var visibleFeeds: [StoredFeed] {
+    guard !selectedTag.isEmpty else { return model.feeds }
+    return model.feeds.filter { feed in
+      model.feedPreferences[feed.feedKey]?.tags.contains {
+        $0.caseInsensitiveCompare(selectedTag) == .orderedSame
+      } == true
+    }
+  }
 
   var body: some View {
     NavigationStack {
       List {
+        if !availableTags.isEmpty {
+          Picker("podcast.tags.filter", selection: $selectedTag) {
+            Text("filter.all").tag("")
+            ForEach(availableTags, id: \.self) { tag in
+              Text(tag).tag(tag)
+            }
+          }
+        }
         if model.feeds.isEmpty {
           ContentUnavailableView(
             "empty.subscriptions",
             systemImage: "dot.radiowaves.left.and.right"
           )
         } else {
-          ForEach(model.feeds, id: \.feedKey) { feed in
+          ForEach(visibleFeeds, id: \.feedKey) { feed in
             NavigationLink {
               FeedDetailView(model: model, feed: feed)
             } label: {
@@ -864,6 +912,15 @@ private struct FeedDetailView: View {
     }
     .navigationTitle(feed.title)
     .navigationBarTitleDisplayMode(.inline)
+    .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        NavigationLink {
+          PodcastSettingsView(model: model, feed: feed)
+        } label: {
+          Label("podcast.settings.title", systemImage: "slider.horizontal.3")
+        }
+      }
+    }
     .refreshable { await model.refresh(feed) }
   }
 }
@@ -872,6 +929,9 @@ private struct AddSubscriptionView: View {
   let model: AppModel
   @Binding var isPresented: Bool
   @State private var url = ""
+  @State private var usesAuthentication = false
+  @State private var username = ""
+  @State private var password = ""
 
   var body: some View {
     NavigationStack {
@@ -886,6 +946,17 @@ private struct AddSubscriptionView: View {
         } footer: {
           Text("addFeed.footer")
         }
+        Section {
+          Toggle("addFeed.authentication", isOn: $usesAuthentication)
+          if usesAuthentication {
+            TextField("addFeed.username", text: $username)
+              .textInputAutocapitalization(.never)
+              .autocorrectionDisabled()
+            SecureField("addFeed.password", text: $password)
+          }
+        } footer: {
+          Text("addFeed.authenticationFooter")
+        }
       }
       .navigationTitle("action.addFeed")
       .navigationBarTitleDisplayMode(.inline)
@@ -896,7 +967,11 @@ private struct AddSubscriptionView: View {
         ToolbarItem(placement: .confirmationAction) {
           Button("common.add") {
             Task {
-              if await model.addSubscription(url) {
+              if await model.addSubscription(
+                url,
+                username: usesAuthentication ? username : "",
+                password: usesAuthentication ? password : ""
+              ) {
                 isPresented = false
               }
             }
@@ -1067,6 +1142,7 @@ private struct SettingsView: View {
   @State private var exportDocument: OPMLFileDocument?
   @State private var isExportingDatabase = false
   @State private var databaseDocument: DatabaseBackupDocument?
+  @State private var isRestoringDatabase = false
 
   var body: some View {
     @Bindable var model = model
@@ -1122,6 +1198,9 @@ private struct SettingsView: View {
           Text("settings.about.localOnly")
             .font(.footnote)
             .foregroundStyle(.secondary)
+          NavigationLink("statistics.title") {
+            StatisticsView(model: model)
+          }
         }
         Section {
           Button("settings.opml.import") {
@@ -1140,6 +1219,16 @@ private struct SettingsView: View {
                 isExportingDatabase = true
               }
             }
+          }
+          Button("settings.backup.restore") {
+            isRestoringDatabase = true
+          }
+          if model.environment.databaseRestoreStartupResult == .applied {
+            Label("restore.applied", systemImage: "checkmark.circle.fill")
+              .foregroundStyle(.green)
+          } else if model.environment.databaseRestoreStartupResult == .rejected {
+            Label("restore.rejected", systemImage: "exclamationmark.triangle.fill")
+              .foregroundStyle(.orange)
           }
         } header: {
           Text("settings.opml.section")
@@ -1160,6 +1249,19 @@ private struct SettingsView: View {
           return
         }
         Task { await model.importOPML(from: url) }
+      }
+      .fileImporter(
+        isPresented: $isRestoringDatabase,
+        allowedContentTypes: [.fennecSQLiteDatabase],
+        allowsMultipleSelection: false
+      ) { result in
+        guard case .success(let urls) = result, let url = urls.first else {
+          if case .failure = result {
+            model.errorMessage = String(localized: "error.operationFailed")
+          }
+          return
+        }
+        Task { await model.stageDatabaseRestore(from: url) }
       }
       .fileExporter(
         isPresented: $isExportingOPML,
