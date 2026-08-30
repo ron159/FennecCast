@@ -26,6 +26,7 @@ struct FeedDocumentParserTests {
     #expect(first.publicationDate?.millisecondsSince1970 == 784_903_526_000)
     #expect(first.durationMilliseconds == 3_723_000)
     #expect(first.summaryHTML == "<p>Full notes</p>")
+    #expect(first.imageURL == (try url("https://example.com/episodes/one.jpg")))
     #expect(first.mimeType == "audio/mpeg")
     #expect(first.transcriptURL == (try url("https://cdn.example.com/one.vtt")))
     #expect(first.transcriptType == "text/vtt")
@@ -36,6 +37,7 @@ struct FeedDocumentParserTests {
     #expect(second.guid == nil)
     #expect(second.enclosureURL == (try url("https://cdn.example.com/two.m4a")))
     #expect(second.durationMilliseconds == 90_500)
+    #expect(second.imageURL == (try url("https://cdn.example.com/two.jpg")))
   }
 
   @Test
@@ -97,6 +99,7 @@ struct FeedDocumentParserTests {
     <rss version="2.0"
          xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
          xmlns:content="http://purl.org/rss/1.0/modules/content/"
+         xmlns:media="http://search.yahoo.com/mrss/"
          xmlns:podcast="https://podcastindex.org/namespace/1.0">
       <channel>
         <title>  Sample &amp; Cast  </title>
@@ -113,6 +116,7 @@ struct FeedDocumentParserTests {
           <itunes:duration>01:02:03</itunes:duration>
           <description>Short notes</description>
           <content:encoded><![CDATA[<p>Full notes</p>]]></content:encoded>
+          <itunes:image href="/episodes/one.jpg"/>
           <podcast:transcript url="https://cdn.example.com/one.vtt" type="text/vtt"/>
           <podcast:chapters url="https://cdn.example.com/one-chapters.json"
                             type="application/json+chapters"/>
@@ -122,6 +126,7 @@ struct FeedDocumentParserTests {
           <enclosure url="https://cdn.example.com/two.m4a" type="audio/mp4"/>
           <pubDate>15 Nov 1994 12:45:26 GMT</pubDate>
           <itunes:duration>90.5</itunes:duration>
+          <media:thumbnail url="https://cdn.example.com/two.jpg"/>
         </item>
       </channel>
     </rss>

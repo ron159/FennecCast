@@ -35,6 +35,10 @@ struct LibraryPersistenceTests {
     #expect(episodes[1].metadata.transcriptType == "text/vtt")
     #expect(episodes[1].metadata.chaptersURL == (try url("https://cdn.example.com/chapters.json")))
     #expect(episodes[1].metadata.chaptersType == "application/json+chapters")
+    #expect(episodes[1].metadata.imageURL == (try url("https://cdn.example.com/episode-1.jpg")))
+    #expect(episodes[1].artworkURL == (try url("https://cdn.example.com/episode-1.jpg")))
+    #expect(episodes[0].metadata.imageURL == nil)
+    #expect(episodes[0].artworkURL == fixture.feed.imageURL)
     #expect(try await store.pendingMutations().map(\.entityType) == [.subscription])
   }
 
@@ -462,6 +466,7 @@ struct LibraryPersistenceTests {
       durationMilliseconds: duration,
       summaryHTML: "Notes for \(title)",
       mimeType: "audio/mpeg",
+      imageURL: guid == "episode-1" ? try url("https://cdn.example.com/episode-1.jpg") : nil,
       transcriptURL: try url("https://cdn.example.com/transcript.vtt"),
       transcriptType: "text/vtt",
       chaptersURL: try url("https://cdn.example.com/chapters.json"),

@@ -1,5 +1,6 @@
 import CoreContracts
 import Foundation
+import GRDB
 import Testing
 
 @testable import LocalData
@@ -43,6 +44,23 @@ struct DatabaseMigrationTests {
     #expect(cursor.serverSequence == 0)
     #expect(cursor.lastLocalSequence == 0)
     #expect(cursor.deviceID == DeviceID(rawValue: "ios-phone"))
+  }
+
+  @Test
+  func currentMigrationAddsEpisodeArtworkColumn() async throws {
+    let directory = try temporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let path = directory.appendingPathComponent("fenneccast.sqlite").path
+    let store = try LocalDataStore(path: path, deviceID: DeviceID("ios-phone"))
+    try await store.close()
+
+    let database = try DatabaseQueue(path: path)
+    let columns = try await database.read { db in
+      try Row.fetchAll(db, sql: "PRAGMA table_info(episodes)")
+        .map { $0["name"] as String }
+    }
+
+    #expect(columns.contains("image_url"))
   }
 
   @Test

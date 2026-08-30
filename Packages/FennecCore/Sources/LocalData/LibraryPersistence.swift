@@ -115,6 +115,7 @@ extension LocalDataStore {
         episode.durationMilliseconds.map({ $0 >= 0 }) ?? true,
         episode.enclosureURL.map(isNetworkURL) ?? true,
         episode.linkURL.map(isNetworkURL) ?? true,
+        episode.imageURL.map(isNetworkURL) ?? true,
         episode.transcriptURL.map(isNetworkURL) ?? true,
         episode.chaptersURL.map(isNetworkURL) ?? true
       else {
@@ -254,13 +255,14 @@ extension LocalDataStore {
           duration_ms,
           description_html,
           mime_type,
+          image_url,
           transcript_url,
           transcript_type,
           chapters_url,
           chapters_type,
           discovered_at_ms,
           updated_at_ms
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
       arguments: [
         episode.episodeKey.rawValue,
@@ -273,6 +275,7 @@ extension LocalDataStore {
         episode.durationMilliseconds,
         episode.summaryHTML,
         episode.mimeType,
+        episode.imageURL?.absoluteString,
         episode.transcriptURL?.absoluteString,
         episode.transcriptType,
         episode.chaptersURL?.absoluteString,
@@ -299,6 +302,7 @@ extension LocalDataStore {
           duration_ms = ?,
           description_html = ?,
           mime_type = ?,
+          image_url = ?,
           transcript_url = ?,
           transcript_type = ?,
           chapters_url = ?,
@@ -315,6 +319,7 @@ extension LocalDataStore {
         episode.durationMilliseconds,
         episode.summaryHTML,
         episode.mimeType,
+        episode.imageURL?.absoluteString,
         episode.transcriptURL?.absoluteString,
         episode.transcriptType,
         episode.chaptersURL?.absoluteString,

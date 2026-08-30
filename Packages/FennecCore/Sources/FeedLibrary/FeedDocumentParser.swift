@@ -61,6 +61,10 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
     var isPodcasting20: Bool {
       namespace.contains("podcastindex.org/namespace") || qualifiedName.hasPrefix("podcast:")
     }
+
+    var isMediaRSS: Bool {
+      namespace.contains("search.yahoo.com/mrss") || qualifiedName.hasPrefix("media:")
+    }
   }
 
   private struct EpisodeBuilder {
@@ -74,6 +78,7 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
     var summaryHTML: String?
     var summaryPriority = 0
     var mimeType: String?
+    var imageURL: URL?
     var transcriptURL: URL?
     var transcriptType: String?
     var chaptersURL: URL?
@@ -97,6 +102,7 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
         durationMilliseconds: durationMilliseconds,
         summaryHTML: summaryHTML,
         mimeType: mimeType,
+        imageURL: imageURL,
         transcriptURL: transcriptURL,
         transcriptType: transcriptType,
         chaptersURL: chaptersURL,
@@ -183,6 +189,22 @@ private final class FeedXMLAccumulator: NSObject, XMLParserDelegate {
       return
     }
     switch element.name {
+    case "image" where element.isITunes:
+      if let href = element.attributes["href"] {
+        episode?.imageURL = networkURL(href)
+      }
+    case "thumbnail" where element.isMediaRSS:
+      if let url = element.attributes["url"] {
+        episode?.imageURL = networkURL(url)
+      }
+    case "content" where element.isMediaRSS && episode?.imageURL == nil:
+      let medium = clean(element.attributes["medium"])?.lowercased()
+      let type = clean(element.attributes["type"])?.lowercased()
+      if medium == "image" || type?.hasPrefix("image/") == true,
+        let url = element.attributes["url"]
+      {
+        episode?.imageURL = networkURL(url)
+      }
     case "enclosure":
       if let url = element.attributes["url"] {
         episode?.enclosureURL = networkURL(url)

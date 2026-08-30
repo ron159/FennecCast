@@ -86,6 +86,9 @@ enum DatabaseSchema {
           """
       )
     }
+    migrator.registerMigration("v7.episodeArtwork") { db in
+      try db.execute(sql: "ALTER TABLE episodes ADD COLUMN image_url TEXT")
+    }
     return migrator
   }
 

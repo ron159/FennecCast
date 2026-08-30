@@ -43,6 +43,7 @@ public struct EpisodeMetadata: Equatable, Sendable {
   public let durationMilliseconds: Int64?
   public let summaryHTML: String?
   public let mimeType: String?
+  public let imageURL: URL?
   public let transcriptURL: URL?
   public let transcriptType: String?
   public let chaptersURL: URL?
@@ -59,6 +60,7 @@ public struct EpisodeMetadata: Equatable, Sendable {
     durationMilliseconds: Int64?,
     summaryHTML: String?,
     mimeType: String?,
+    imageURL: URL? = nil,
     transcriptURL: URL? = nil,
     transcriptType: String? = nil,
     chaptersURL: URL? = nil,
@@ -74,6 +76,7 @@ public struct EpisodeMetadata: Equatable, Sendable {
     self.durationMilliseconds = durationMilliseconds
     self.summaryHTML = summaryHTML
     self.mimeType = mimeType
+    self.imageURL = imageURL
     self.transcriptURL = transcriptURL
     self.transcriptType = transcriptType
     self.chaptersURL = chaptersURL
@@ -106,6 +109,7 @@ public struct StoredFeed: Equatable, Sendable {
 public struct StoredEpisode: Equatable, Sendable {
   public let metadata: EpisodeMetadata
   public let feedTitle: String
+  public let feedImageURL: URL?
   public let inbox: Bool
   public let favorite: Bool
   public let archived: Bool
@@ -115,10 +119,12 @@ public struct StoredEpisode: Equatable, Sendable {
 
   public var episodeKey: EpisodeKey { metadata.episodeKey }
   public var title: String { metadata.title }
+  public var artworkURL: URL? { metadata.imageURL ?? feedImageURL }
 
   public init(
     metadata: EpisodeMetadata,
     feedTitle: String,
+    feedImageURL: URL? = nil,
     inbox: Bool,
     favorite: Bool,
     archived: Bool,
@@ -128,6 +134,7 @@ public struct StoredEpisode: Equatable, Sendable {
   ) {
     self.metadata = metadata
     self.feedTitle = feedTitle
+    self.feedImageURL = feedImageURL
     self.inbox = inbox
     self.favorite = favorite
     self.archived = archived

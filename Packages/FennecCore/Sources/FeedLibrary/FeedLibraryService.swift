@@ -265,6 +265,7 @@ public actor FeedLibraryService {
           durationMilliseconds: episode.durationMilliseconds,
           summaryHTML: episode.summaryHTML,
           mimeType: episode.mimeType,
+          imageURL: episode.imageURL,
           transcriptURL: episode.transcriptURL,
           transcriptType: episode.transcriptType,
           chaptersURL: episode.chaptersURL,
