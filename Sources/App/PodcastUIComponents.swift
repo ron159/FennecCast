@@ -1,6 +1,25 @@
 import Foundation
 import SwiftUI
 
+enum PrimaryTab: String, CaseIterable, Hashable {
+  case home
+  case inbox
+  case queue
+  case subscriptions
+  case downloads
+
+  static func launchSelection(from arguments: [String]) -> PrimaryTab {
+    guard
+      let optionIndex = arguments.firstIndex(of: "--fenneccast-tab"),
+      arguments.indices.contains(optionIndex + 1),
+      let selection = PrimaryTab(rawValue: arguments[optionIndex + 1])
+    else {
+      return .home
+    }
+    return selection
+  }
+}
+
 enum SubscriptionLayout: String, CaseIterable, Identifiable {
   case list
   case compactGrid

@@ -135,6 +135,24 @@ final class AppFoundationTests: XCTestCase {
     XCTAssertEqual(SubscriptionLayout.restored(from: "future-value"), .artworkGrid)
   }
 
+  func testPrimaryNavigationFitsTheNativeIPhoneTabBar() {
+    XCTAssertEqual(
+      PrimaryTab.allCases,
+      [.home, .inbox, .queue, .subscriptions, .downloads]
+    )
+    XCTAssertLessThanOrEqual(PrimaryTab.allCases.count, 5)
+    XCTAssertEqual(
+      PrimaryTab.launchSelection(
+        from: ["FennecCast", "--fenneccast-tab", "subscriptions"]
+      ),
+      .subscriptions
+    )
+    XCTAssertEqual(
+      PrimaryTab.launchSelection(from: ["FennecCast", "--fenneccast-tab", "unknown"]),
+      .home
+    )
+  }
+
   func testFeedMarkupPreservesReadableStructureAndRemovesActiveContent() {
     let html = """
       <p>First line<br>Second &amp; line</p>

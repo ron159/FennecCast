@@ -71,9 +71,22 @@ final class AppModel {
   func start() async {
     loadSyncSettings()
     await reloadAll()
+    await loadDebugPlaybackIfRequested()
     _ = await environment.podcastAutomationService?.runMaintenance()
     await reloadDownloads()
     await refreshStaleFeeds()
+  }
+
+  private func loadDebugPlaybackIfRequested() async {
+    #if DEBUG
+      guard
+        ProcessInfo.processInfo.arguments.contains("--fenneccast-load-first-episode"),
+        let episode = episodes.first,
+        let engine = environment.playbackEngine
+      else { return }
+      try? await engine.load(episode.episodeKey, autoplay: false)
+      playback = await engine.snapshot()
+    #endif
   }
 
   func observePlayback() async {
@@ -644,19 +657,24 @@ final class AppModel {
 
 struct RootView: View {
   @State private var model: AppModel
+  @State private var selectedTab = PrimaryTab.home
 
   init(environment: AppEnvironment) {
     _model = State(initialValue: AppModel(environment: environment))
+    _selectedTab = State(
+      initialValue: PrimaryTab.launchSelection(from: ProcessInfo.processInfo.arguments)
+    )
   }
 
   var body: some View {
     if model.environment.startupFailure != nil {
       StartupFailureView()
     } else {
-      TabView {
+      TabView(selection: $selectedTab) {
         HomeView(model: model)
           .playerBarInset(model: model)
           .tabItem { Label("tab.home", systemImage: "house") }
+          .tag(PrimaryTab.home)
         NavigationStack {
           AdvancedLibraryView(
             model: model,
@@ -666,21 +684,19 @@ struct RootView: View {
         }
         .playerBarInset(model: model)
         .tabItem { Label("tab.inbox", systemImage: "tray") }
+        .tag(PrimaryTab.inbox)
         QueueView(model: model)
           .playerBarInset(model: model)
           .tabItem { Label("tab.queue", systemImage: "text.line.first.and.arrowtriangle.forward") }
+          .tag(PrimaryTab.queue)
         SubscriptionsView(model: model)
           .playerBarInset(model: model)
           .tabItem { Label("tab.subscriptions", systemImage: "square.stack") }
+          .tag(PrimaryTab.subscriptions)
         DownloadsView(model: model)
           .playerBarInset(model: model)
           .tabItem { Label("tab.downloads", systemImage: "arrow.down.circle") }
-        SearchView(model: model)
-          .playerBarInset(model: model)
-          .tabItem { Label("tab.search", systemImage: "magnifyingglass") }
-        SettingsView(model: model)
-          .playerBarInset(model: model)
-          .tabItem { Label("tab.settings", systemImage: "gearshape") }
+          .tag(PrimaryTab.downloads)
       }
       .sheet(isPresented: $model.isPlayerPresented) {
         PlayerView(model: model)
@@ -723,6 +739,7 @@ private struct StartupFailureView: View {
 
 private struct HomeView: View {
   let model: AppModel
+  @State private var destination: HomeDestination?
 
   var body: some View {
     NavigationStack {
@@ -753,17 +770,44 @@ private struct HomeView: View {
       }
       .navigationTitle("tab.home")
       .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItemGroup(placement: .topBarTrailing) {
           NavigationLink {
-            AdvancedLibraryView(model: model)
+            SearchView(model: model)
           } label: {
-            Label("library.title", systemImage: "rectangle.stack")
+            Label("tab.search", systemImage: "magnifyingglass")
           }
+          Menu {
+            Button {
+              destination = .library
+            } label: {
+              Label("library.title", systemImage: "rectangle.stack")
+            }
+            Button {
+              destination = .settings
+            } label: {
+              Label("tab.settings", systemImage: "gearshape")
+            }
+          } label: {
+            Label("library.actions", systemImage: "ellipsis.circle")
+          }
+        }
+      }
+      .navigationDestination(item: $destination) { destination in
+        switch destination {
+        case .library:
+          AdvancedLibraryView(model: model)
+        case .settings:
+          SettingsView(model: model)
         }
       }
       .refreshable { await model.refreshAllFeeds() }
     }
   }
+}
+
+private enum HomeDestination: Hashable {
+  case library
+  case settings
 }
 
 private struct SubscriptionsView: View {
@@ -1301,32 +1345,30 @@ private struct SearchView: View {
   }
 
   var body: some View {
-    NavigationStack {
-      List {
-        if query.isEmpty {
-          ContentUnavailableView("search.prompt", systemImage: "magnifyingglass")
-        } else if results.isEmpty {
-          ContentUnavailableView.search(text: query)
-        } else {
-          ForEach(results, id: \.episodeKey) { episode in
-            EpisodeRow(model: model, episode: episode)
-          }
+    List {
+      if query.isEmpty {
+        ContentUnavailableView("search.prompt", systemImage: "magnifyingglass")
+      } else if results.isEmpty {
+        ContentUnavailableView.search(text: query)
+      } else {
+        ForEach(results, id: \.episodeKey) { episode in
+          EpisodeRow(model: model, episode: episode)
         }
       }
-      .navigationTitle("tab.search")
-      .searchable(text: $query, prompt: "search.placeholder")
-      .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
-          Button {
-            isAdding = true
-          } label: {
-            Label("action.addFeed", systemImage: "plus")
-          }
+    }
+    .navigationTitle("tab.search")
+    .searchable(text: $query, prompt: "search.placeholder")
+    .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        Button {
+          isAdding = true
+        } label: {
+          Label("action.addFeed", systemImage: "plus")
         }
       }
-      .sheet(isPresented: $isAdding) {
-        AddSubscriptionView(model: model, isPresented: $isAdding)
-      }
+    }
+    .sheet(isPresented: $isAdding) {
+      AddSubscriptionView(model: model, isPresented: $isAdding)
     }
   }
 }
@@ -1342,145 +1384,143 @@ private struct SettingsView: View {
 
   var body: some View {
     @Bindable var model = model
-    NavigationStack {
-      Form {
-        Section {
-          TextField("settings.sync.server", text: $model.syncServerURL)
-            .textInputAutocapitalization(.never)
-            .keyboardType(.URL)
-            .autocorrectionDisabled()
-          SecureField("settings.sync.token", text: $model.syncToken)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-          if model.syncTokenConfigured {
-            Label("settings.sync.tokenStored", systemImage: "key.fill")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-          Button("settings.sync.save") {
-            Task { await model.saveSyncSettings() }
-          }
-          Button("settings.sync.now") {
-            Task { await model.synchronizeManually() }
-          }
-          .disabled(!model.syncTokenConfigured && model.syncToken.isEmpty)
-          if model.syncTokenConfigured {
-            Button("settings.sync.clear", role: .destructive) {
-              Task { await model.clearSyncSettings() }
-            }
-          }
-        } header: {
-          Text("settings.sync.section")
-        } footer: {
-          Text("settings.sync.footer")
-        }
-        Section("settings.sync.status") {
-          LabeledContent("settings.sync.phase", value: syncPhaseText(model.sync.phase))
-          LabeledContent("settings.sync.pending", value: "\(model.sync.pendingMutationCount)")
-          LabeledContent("settings.sync.cursor", value: "\(model.sync.cursor)")
-          if let timestamp = model.sync.lastSuccessfulAtMilliseconds {
-            LabeledContent(
-              "settings.sync.lastSuccess",
-              value: Date(timeIntervalSince1970: Double(timestamp) / 1_000).formatted()
-            )
-          }
-        }
-        Section("settings.about.section") {
-          LabeledContent("settings.about.app", value: model.environment.appName)
-          LabeledContent(
-            "settings.about.protocol",
-            value: "v\(model.environment.stateSyncProtocolVersion)"
-          )
-          Text("settings.about.localOnly")
-            .font(.footnote)
+    Form {
+      Section {
+        TextField("settings.sync.server", text: $model.syncServerURL)
+          .textInputAutocapitalization(.never)
+          .keyboardType(.URL)
+          .autocorrectionDisabled()
+        SecureField("settings.sync.token", text: $model.syncToken)
+          .textInputAutocapitalization(.never)
+          .autocorrectionDisabled()
+        if model.syncTokenConfigured {
+          Label("settings.sync.tokenStored", systemImage: "key.fill")
+            .font(.caption)
             .foregroundStyle(.secondary)
-          NavigationLink("statistics.title") {
-            StatisticsView(model: model)
+        }
+        Button("settings.sync.save") {
+          Task { await model.saveSyncSettings() }
+        }
+        Button("settings.sync.now") {
+          Task { await model.synchronizeManually() }
+        }
+        .disabled(!model.syncTokenConfigured && model.syncToken.isEmpty)
+        if model.syncTokenConfigured {
+          Button("settings.sync.clear", role: .destructive) {
+            Task { await model.clearSyncSettings() }
           }
         }
-        Section {
-          Button("settings.opml.import") {
-            isImportingOPML = true
+      } header: {
+        Text("settings.sync.section")
+      } footer: {
+        Text("settings.sync.footer")
+      }
+      Section("settings.sync.status") {
+        LabeledContent("settings.sync.phase", value: syncPhaseText(model.sync.phase))
+        LabeledContent("settings.sync.pending", value: "\(model.sync.pendingMutationCount)")
+        LabeledContent("settings.sync.cursor", value: "\(model.sync.cursor)")
+        if let timestamp = model.sync.lastSuccessfulAtMilliseconds {
+          LabeledContent(
+            "settings.sync.lastSuccess",
+            value: Date(timeIntervalSince1970: Double(timestamp) / 1_000).formatted()
+          )
+        }
+      }
+      Section("settings.about.section") {
+        LabeledContent("settings.about.app", value: model.environment.appName)
+        LabeledContent(
+          "settings.about.protocol",
+          value: "v\(model.environment.stateSyncProtocolVersion)"
+        )
+        Text("settings.about.localOnly")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+        NavigationLink("statistics.title") {
+          StatisticsView(model: model)
+        }
+      }
+      Section {
+        Button("settings.opml.import") {
+          isImportingOPML = true
+        }
+        Button("settings.opml.export") {
+          if let document = model.exportOPMLDocument() {
+            exportDocument = document
+            isExportingOPML = true
           }
-          Button("settings.opml.export") {
-            if let document = model.exportOPMLDocument() {
-              exportDocument = document
-              isExportingOPML = true
+        }
+        Button("settings.backup.export") {
+          Task {
+            if let document = await model.exportDatabaseDocument() {
+              databaseDocument = document
+              isExportingDatabase = true
             }
           }
-          Button("settings.backup.export") {
-            Task {
-              if let document = await model.exportDatabaseDocument() {
-                databaseDocument = document
-                isExportingDatabase = true
-              }
-            }
-          }
-          Button("settings.backup.restore") {
-            isRestoringDatabase = true
-          }
-          if model.environment.databaseRestoreStartupResult == .applied {
-            Label("restore.applied", systemImage: "checkmark.circle.fill")
-              .foregroundStyle(.green)
-          } else if model.environment.databaseRestoreStartupResult == .rejected {
-            Label("restore.rejected", systemImage: "exclamationmark.triangle.fill")
-              .foregroundStyle(.orange)
-          }
-        } header: {
-          Text("settings.opml.section")
-        } footer: {
-          Text("settings.opml.footer")
         }
-      }
-      .navigationTitle("tab.settings")
-      .fileImporter(
-        isPresented: $isImportingOPML,
-        allowedContentTypes: [.xml],
-        allowsMultipleSelection: false
-      ) { result in
-        guard case .success(let urls) = result, let url = urls.first else {
-          if case .failure = result {
-            model.errorMessage = String(localized: "error.operationFailed")
-          }
-          return
+        Button("settings.backup.restore") {
+          isRestoringDatabase = true
         }
-        Task { await model.importOPML(from: url) }
-      }
-      .fileImporter(
-        isPresented: $isRestoringDatabase,
-        allowedContentTypes: [.fennecSQLiteDatabase],
-        allowsMultipleSelection: false
-      ) { result in
-        guard case .success(let urls) = result, let url = urls.first else {
-          if case .failure = result {
-            model.errorMessage = String(localized: "error.operationFailed")
-          }
-          return
+        if model.environment.databaseRestoreStartupResult == .applied {
+          Label("restore.applied", systemImage: "checkmark.circle.fill")
+            .foregroundStyle(.green)
+        } else if model.environment.databaseRestoreStartupResult == .rejected {
+          Label("restore.rejected", systemImage: "exclamationmark.triangle.fill")
+            .foregroundStyle(.orange)
         }
-        Task { await model.stageDatabaseRestore(from: url) }
+      } header: {
+        Text("settings.opml.section")
+      } footer: {
+        Text("settings.opml.footer")
       }
-      .fileExporter(
-        isPresented: $isExportingOPML,
-        document: exportDocument,
-        contentType: .xml,
-        defaultFilename: "FennecCast.opml"
-      ) { result in
+    }
+    .navigationTitle("tab.settings")
+    .fileImporter(
+      isPresented: $isImportingOPML,
+      allowedContentTypes: [.xml],
+      allowsMultipleSelection: false
+    ) { result in
+      guard case .success(let urls) = result, let url = urls.first else {
         if case .failure = result {
           model.errorMessage = String(localized: "error.operationFailed")
         }
-        exportDocument = nil
+        return
       }
-      .fileExporter(
-        isPresented: $isExportingDatabase,
-        document: databaseDocument,
-        contentType: .fennecSQLiteDatabase,
-        defaultFilename: "FennecCast-backup.sqlite"
-      ) { result in
+      Task { await model.importOPML(from: url) }
+    }
+    .fileImporter(
+      isPresented: $isRestoringDatabase,
+      allowedContentTypes: [.fennecSQLiteDatabase],
+      allowsMultipleSelection: false
+    ) { result in
+      guard case .success(let urls) = result, let url = urls.first else {
         if case .failure = result {
           model.errorMessage = String(localized: "error.operationFailed")
         }
-        databaseDocument = nil
+        return
       }
+      Task { await model.stageDatabaseRestore(from: url) }
+    }
+    .fileExporter(
+      isPresented: $isExportingOPML,
+      document: exportDocument,
+      contentType: .xml,
+      defaultFilename: "FennecCast.opml"
+    ) { result in
+      if case .failure = result {
+        model.errorMessage = String(localized: "error.operationFailed")
+      }
+      exportDocument = nil
+    }
+    .fileExporter(
+      isPresented: $isExportingDatabase,
+      document: databaseDocument,
+      contentType: .fennecSQLiteDatabase,
+      defaultFilename: "FennecCast-backup.sqlite"
+    ) { result in
+      if case .failure = result {
+        model.errorMessage = String(localized: "error.operationFailed")
+      }
+      databaseDocument = nil
     }
   }
 }
