@@ -43,6 +43,7 @@ public struct DatabaseRestoreCoordinator: Sendable {
     "v4.syncClock",
     "v5.episodeSupplementalContent",
     "v6.advancedFeedPreferences",
+    "v7.episodeArtwork",
   ]
 
   private let maximumBytes: Int
