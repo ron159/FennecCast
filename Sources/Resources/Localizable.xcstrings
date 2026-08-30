@@ -2,6 +2,10 @@
   "sourceLanguage" : "en",
   "strings" : {
     "FennecCast" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"FennecCast"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"FennecCast"}}}},
+    "subscriptions.layout" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Layout"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"布局"}}}},
+    "subscriptions.layout.artwork" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Artwork Grid"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"封面网格"}}}},
+    "subscriptions.layout.compact" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Compact Grid"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"紧凑网格"}}}},
+    "subscriptions.layout.list" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"List"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"列表"}}}},
     "action.moveBottom" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Move to Bottom"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"移到底部"}}}},
     "action.moveTop" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Move to Top"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"移到顶部"}}}},
     "action.selectAll" : {"extractionState":"manual","localizations":{"en":{"stringUnit":{"state":"translated","value":"Select All"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"全选"}}}},

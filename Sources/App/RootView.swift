@@ -655,6 +655,7 @@ struct RootView: View {
     } else {
       TabView {
         HomeView(model: model)
+          .playerBarInset(model: model)
           .tabItem { Label("tab.home", systemImage: "house") }
         NavigationStack {
           AdvancedLibraryView(
@@ -663,22 +664,23 @@ struct RootView: View {
             initialCriteria: EpisodeListCriteria(inbox: true)
           )
         }
+        .playerBarInset(model: model)
         .tabItem { Label("tab.inbox", systemImage: "tray") }
         QueueView(model: model)
+          .playerBarInset(model: model)
           .tabItem { Label("tab.queue", systemImage: "text.line.first.and.arrowtriangle.forward") }
         SubscriptionsView(model: model)
+          .playerBarInset(model: model)
           .tabItem { Label("tab.subscriptions", systemImage: "square.stack") }
         DownloadsView(model: model)
+          .playerBarInset(model: model)
           .tabItem { Label("tab.downloads", systemImage: "arrow.down.circle") }
         SearchView(model: model)
+          .playerBarInset(model: model)
           .tabItem { Label("tab.search", systemImage: "magnifyingglass") }
         SettingsView(model: model)
+          .playerBarInset(model: model)
           .tabItem { Label("tab.settings", systemImage: "gearshape") }
-      }
-      .safeAreaInset(edge: .bottom, spacing: 0) {
-        if model.playback.item != nil {
-          MiniPlayerView(model: model)
-        }
       }
       .sheet(isPresented: $model.isPlayerPresented) {
         PlayerView(model: model)
@@ -768,6 +770,8 @@ private struct SubscriptionsView: View {
   let model: AppModel
   @State private var isAdding = false
   @State private var selectedTag = ""
+  @AppStorage(SubscriptionLayout.storageKey) private var layoutRawValue =
+    SubscriptionLayout.artworkGrid.rawValue
 
   private var availableTags: [String] {
     Array(Set(model.feedPreferences.values.flatMap(\.tags)))
@@ -783,50 +787,49 @@ private struct SubscriptionsView: View {
     }
   }
 
+  private var episodeCountsByFeed: [FeedKey: Int] {
+    Dictionary(grouping: model.episodes, by: { $0.metadata.feedKey })
+      .mapValues(\.count)
+  }
+
+  private var layout: SubscriptionLayout {
+    SubscriptionLayout.restored(from: layoutRawValue)
+  }
+
   var body: some View {
     NavigationStack {
-      List {
+      VStack(spacing: 0) {
         if !availableTags.isEmpty {
-          Picker("podcast.tags.filter", selection: $selectedTag) {
-            Text("filter.all").tag("")
-            ForEach(availableTags, id: \.self) { tag in
-              Text(tag).tag(tag)
-            }
-          }
+          tagStrip
         }
-        if model.feeds.isEmpty {
-          ContentUnavailableView(
-            "empty.subscriptions",
-            systemImage: "dot.radiowaves.left.and.right"
-          )
-        } else {
-          ForEach(visibleFeeds, id: \.feedKey) { feed in
-            NavigationLink {
-              FeedDetailView(model: model, feed: feed)
-            } label: {
-              FeedRow(feed: feed)
-            }
-            .swipeActions(edge: .trailing) {
-              Button(role: .destructive) {
-                Task { await model.unsubscribe(feed) }
-              } label: {
-                Label("action.unsubscribe", systemImage: "minus.circle")
-              }
-            }
-          }
-        }
+        subscriptionContent
       }
       .navigationTitle("tab.subscriptions")
       .toolbar {
         ToolbarItem(placement: .topBarLeading) {
+          Menu {
+            ForEach(SubscriptionLayout.allCases) { option in
+              Button {
+                layoutRawValue = option.rawValue
+              } label: {
+                if option == layout {
+                  Label(option.titleKey, systemImage: "checkmark")
+                } else {
+                  Label(option.titleKey, systemImage: option.systemImage)
+                }
+              }
+            }
+          } label: {
+            Label("subscriptions.layout", systemImage: layout.systemImage)
+          }
+        }
+        ToolbarItemGroup(placement: .topBarTrailing) {
           Button {
             Task { await model.refreshAllFeeds() }
           } label: {
             Label("action.refreshAll", systemImage: "arrow.clockwise")
           }
           .disabled(model.feeds.isEmpty)
-        }
-        ToolbarItem(placement: .topBarTrailing) {
           Button {
             isAdding = true
           } label: {
@@ -837,7 +840,97 @@ private struct SubscriptionsView: View {
       .sheet(isPresented: $isAdding) {
         AddSubscriptionView(model: model, isPresented: $isAdding)
       }
+    }
+  }
+
+  private var tagStrip: some View {
+    ScrollView(.horizontal, showsIndicators: false) {
+      HStack(spacing: 8) {
+        tagButton(title: String(localized: "filter.all"), value: "")
+        ForEach(availableTags, id: \.self) { tag in
+          tagButton(title: tag, value: tag)
+        }
+      }
+      .padding(.horizontal, 16)
+      .padding(.vertical, 8)
+    }
+    .background(.bar)
+    .accessibilityLabel("podcast.tags.filter")
+  }
+
+  @ViewBuilder
+  private var subscriptionContent: some View {
+    if visibleFeeds.isEmpty {
+      ContentUnavailableView(
+        "empty.subscriptions",
+        systemImage: "dot.radiowaves.left.and.right"
+      )
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+    } else if layout == .list {
+      List(visibleFeeds, id: \.feedKey) { feed in
+        NavigationLink {
+          FeedDetailView(model: model, feed: feed)
+        } label: {
+          FeedRow(feed: feed)
+        }
+        .swipeActions(edge: .trailing) {
+          unsubscribeButton(feed)
+        }
+      }
+      .listStyle(.plain)
       .refreshable { await model.refreshAllFeeds() }
+    } else {
+      ScrollView {
+        LazyVGrid(
+          columns: [GridItem(.adaptive(minimum: layout.minimumColumnWidth), spacing: 16)],
+          spacing: 18
+        ) {
+          ForEach(visibleFeeds, id: \.feedKey) { feed in
+            NavigationLink {
+              FeedDetailView(model: model, feed: feed)
+            } label: {
+              SubscriptionGridCell(
+                feed: feed,
+                episodeCount: episodeCountsByFeed[feed.feedKey, default: 0],
+                compact: layout == .compactGrid
+              )
+            }
+            .buttonStyle(.plain)
+            .contextMenu {
+              unsubscribeButton(feed)
+            }
+          }
+        }
+        .padding(16)
+      }
+      .refreshable { await model.refreshAllFeeds() }
+    }
+  }
+
+  private func tagButton(title: String, value: String) -> some View {
+    let isSelected = selectedTag == value
+    return Button {
+      selectedTag = value
+    } label: {
+      Text(title)
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(isSelected ? Color.white : Color.primary)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .background(
+          isSelected ? Color.accentColor : Color.secondary.opacity(0.12),
+          in: Capsule()
+        )
+    }
+    .buttonStyle(.plain)
+    .accessibilityAddTraits(isSelected ? .isSelected : [])
+  }
+
+  private func unsubscribeButton(_ feed: StoredFeed) -> some View {
+    Button(role: .destructive) {
+      Task { await model.unsubscribe(feed) }
+    } label: {
+      Label("action.unsubscribe", systemImage: "minus.circle")
     }
   }
 }
@@ -871,13 +964,7 @@ private struct FeedDetailView: View {
   var body: some View {
     List {
       Section {
-        FeedRow(feed: feed)
-        if let summary = feed.metadata.summaryHTML, !summary.isEmpty {
-          Text(summary)
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .lineLimit(6)
-        }
+        FeedHero(feed: feed)
       }
       Section {
         Picker("filter.title", selection: $filter) {
@@ -1000,13 +1087,26 @@ private struct QueueView: View {
         } else {
           ForEach(Array(model.queue.enumerated()), id: \.element.episodeKey) { index, item in
             HStack(spacing: 12) {
+              PodcastArtwork(
+                url: item.episode?.artworkURL,
+                title: item.episode?.title ?? String(localized: "queue.missingEpisode"),
+                cornerRadius: 10
+              )
+              .frame(width: 60, height: 60)
               VStack(alignment: .leading, spacing: 4) {
                 Text(item.episode?.title ?? String(localized: "queue.missingEpisode"))
                   .font(.headline)
+                  .lineLimit(2)
                 Text(item.episode?.feedTitle ?? item.episodeKey.rawValue)
-                  .font(.caption)
+                  .font(.subheadline)
                   .foregroundStyle(.secondary)
                   .lineLimit(1)
+                if let duration = item.episode?.metadata.durationMilliseconds {
+                  Text(formatDuration(duration))
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .monospacedDigit()
+                }
               }
               Spacer()
               Menu {
@@ -1039,6 +1139,8 @@ private struct QueueView: View {
               }
             }
             .tag(item.episodeKey)
+            .padding(.vertical, 3)
+            .accessibilityElement(children: .contain)
           }
           .onMove(perform: move)
         }
@@ -1133,32 +1235,48 @@ private struct DownloadsView: View {
         } else {
           ForEach(model.downloads, id: \.episodeKey) { record in
             let episode = model.episodes.first { $0.episodeKey == record.episodeKey }
-            VStack(alignment: .leading, spacing: 8) {
-              Text(episode?.title ?? record.episodeKey.rawValue)
-                .font(.headline)
-                .lineLimit(2)
-              Text(downloadStateKey(record.state))
+            HStack(alignment: .top, spacing: 12) {
+              PodcastArtwork(
+                url: episode?.artworkURL,
+                title: episode?.title ?? record.episodeKey.rawValue,
+                cornerRadius: 10
+              )
+              .frame(width: 64, height: 64)
+              VStack(alignment: .leading, spacing: 8) {
+                Text(episode?.title ?? record.episodeKey.rawValue)
+                  .font(.headline)
+                  .lineLimit(2)
+                HStack(spacing: 6) {
+                  if let feedTitle = episode?.feedTitle {
+                    Text(feedTitle)
+                      .lineLimit(1)
+                    Text("·")
+                  }
+                  Text(downloadStateKey(record.state))
+                }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-              if let contentLength = record.contentLength, contentLength > 0 {
-                ProgressView(
-                  value: Double(record.downloadedBytes),
-                  total: Double(contentLength)
-                )
-              }
-              HStack {
-                Button(downloadActionKey(record.state)) {
-                  Task { await model.applyDownloadAction(record) }
+                if let contentLength = record.contentLength, contentLength > 0 {
+                  ProgressView(
+                    value: Double(record.downloadedBytes),
+                    total: Double(contentLength)
+                  )
                 }
-                if record.state != .completed {
-                  Button("common.cancel", role: .destructive) {
-                    Task { await model.cancelDownload(record) }
+                HStack {
+                  Button(downloadActionKey(record.state)) {
+                    Task { await model.applyDownloadAction(record) }
+                  }
+                  if record.state != .completed {
+                    Button("common.cancel", role: .destructive) {
+                      Task { await model.cancelDownload(record) }
+                    }
                   }
                 }
+                .buttonStyle(.borderless)
               }
-              .buttonStyle(.borderless)
             }
             .padding(.vertical, 4)
+            .accessibilityElement(children: .contain)
           }
         }
       }
@@ -1436,46 +1554,69 @@ private struct EpisodeRow: View {
   }
 
   var body: some View {
-    NavigationLink {
-      EpisodeDetailView(model: model, episode: episode)
-    } label: {
-      HStack(spacing: 12) {
-        Button {
-          Task { await model.play(episode) }
-        } label: {
-          Image(systemName: episode.played ? "checkmark.circle.fill" : "play.circle.fill")
-            .font(.title2)
-        }
-        .buttonStyle(.plain)
-        VStack(alignment: .leading, spacing: 4) {
-          Text(episode.title)
-            .font(.headline)
-            .lineLimit(2)
-          HStack(spacing: 6) {
+    HStack(alignment: .center, spacing: 8) {
+      NavigationLink {
+        EpisodeDetailView(model: model, episode: episode)
+      } label: {
+        HStack(alignment: .top, spacing: 12) {
+          PodcastArtwork(url: episode.artworkURL, title: episode.title, cornerRadius: 11)
+            .frame(width: 72, height: 72)
+          VStack(alignment: .leading, spacing: 4) {
+            Text(episode.title)
+              .font(.headline.weight(.semibold))
+              .lineLimit(2)
             Text(episode.feedTitle)
-            if let publication = episode.metadata.publicationDateMilliseconds {
-              Text("\u{2022}")
-              Text(Date(timeIntervalSince1970: Double(publication) / 1_000), style: .date)
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+            HStack(spacing: 5) {
+              if let publication = episode.metadata.publicationDateMilliseconds {
+                Text(Date(timeIntervalSince1970: Double(publication) / 1_000), style: .date)
+              }
+              if let duration = episode.metadata.durationMilliseconds {
+                Text("\u{2022}")
+                Text(formatDuration(duration))
+              }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            HStack(spacing: 7) {
+              if episode.inbox { Image(systemName: "tray.fill") }
+              if episode.favorite { Image(systemName: "star.fill") }
+              if model.queuedEpisodeKeys.contains(episode.episodeKey) {
+                Image(systemName: "text.line.first.and.arrowtriangle.forward")
+              }
+              if episode.played { Image(systemName: "checkmark.circle.fill") }
+            }
+            .font(.caption)
+            .foregroundStyle(.tint)
+            if episode.positionMilliseconds > 0,
+              let duration = episode.metadata.durationMilliseconds,
+              duration > 0
+            {
+              ProgressView(
+                value: Double(episode.positionMilliseconds),
+                total: Double(duration)
+              )
+              .tint(.accentColor)
             }
           }
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          if episode.positionMilliseconds > 0,
-            let duration = episode.metadata.durationMilliseconds,
-            duration > 0
-          {
-            ProgressView(
-              value: Double(episode.positionMilliseconds),
-              total: Double(duration)
-            )
-          }
-        }
-        if episode.favorite {
-          Image(systemName: "star.fill")
-            .foregroundStyle(.yellow)
+          Spacer(minLength: 0)
         }
       }
+      .buttonStyle(.plain)
+      Button {
+        Task { await model.play(episode) }
+      } label: {
+        Image(systemName: episode.played ? "arrow.counterclockwise.circle" : "play.circle.fill")
+          .font(.title2)
+          .frame(width: 36, height: 44)
+      }
+      .buttonStyle(.borderless)
+      .accessibilityLabel("action.play")
     }
+    .padding(.vertical, 4)
+    .opacity(episode.played ? 0.7 : 1)
     .swipeActions(edge: .leading) {
       Button {
         Task { await model.setFavorite(!episode.favorite, episode: episode) }
@@ -1521,13 +1662,24 @@ struct EpisodeDetailView: View {
   var body: some View {
     List {
       Section {
-        Text(episode.title)
-          .font(.title2.bold())
-        Text(episode.feedTitle)
-          .foregroundStyle(.secondary)
-        if let duration = episode.metadata.durationMilliseconds {
-          Label(formatDuration(duration), systemImage: "clock")
+        HStack(alignment: .top, spacing: 16) {
+          PodcastArtwork(url: episode.artworkURL, title: episode.title, cornerRadius: 16)
+            .frame(width: 112, height: 112)
+          VStack(alignment: .leading, spacing: 7) {
+            Text(episode.title)
+              .font(.title3.bold())
+              .fixedSize(horizontal: false, vertical: true)
+            Text(episode.feedTitle)
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+            if let duration = episode.metadata.durationMilliseconds {
+              Label(formatDuration(duration), systemImage: "clock")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
         }
+        .padding(.vertical, 6)
       }
       Section {
         Button {
@@ -1592,8 +1744,7 @@ struct EpisodeDetailView: View {
       }
       if let summary = episode.metadata.summaryHTML, !summary.isEmpty {
         Section("episode.description") {
-          Text(summary)
-            .textSelection(.enabled)
+          FeedMarkupText(html: summary)
         }
       }
       if episode.metadata.transcriptURL != nil {
@@ -1620,22 +1771,44 @@ struct EpisodeDetailView: View {
 private struct MiniPlayerView: View {
   let model: AppModel
 
+  private var episode: StoredEpisode? {
+    guard let episodeKey = model.playback.item?.episodeKey else { return nil }
+    return model.episodes.first { $0.episodeKey == episodeKey }
+  }
+
   var body: some View {
-    Button {
-      model.isPlayerPresented = true
-    } label: {
+    VStack(spacing: 0) {
+      if let duration = model.playback.durationMilliseconds, duration > 0 {
+        ProgressView(
+          value: Double(model.playback.positionMilliseconds),
+          total: Double(duration)
+        )
+        .progressViewStyle(.linear)
+        .tint(.accentColor)
+      }
       HStack(spacing: 12) {
-        Image(systemName: "waveform.circle.fill")
-          .font(.title2)
-        VStack(alignment: .leading, spacing: 2) {
-          Text(model.playback.item?.title ?? "")
-            .font(.subheadline.weight(.semibold))
-            .lineLimit(1)
-          Text(model.playback.item?.podcastTitle ?? "")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
+        Button {
+          model.isPlayerPresented = true
+        } label: {
+          HStack(spacing: 11) {
+            PodcastArtwork(
+              url: episode?.artworkURL,
+              title: model.playback.item?.title ?? "FennecCast",
+              cornerRadius: 8
+            )
+            .frame(width: 44, height: 44)
+            VStack(alignment: .leading, spacing: 2) {
+              Text(model.playback.item?.title ?? "")
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+              Text(model.playback.item?.podcastTitle ?? "")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            }
+          }
         }
+        .buttonStyle(.plain)
         Spacer()
         Button {
           Task { await model.togglePlayback() }
@@ -1646,11 +1819,30 @@ private struct MiniPlayerView: View {
         }
         .buttonStyle(.plain)
       }
-      .padding(.horizontal)
-      .padding(.vertical, 8)
-      .background(.bar)
+      .padding(.horizontal, 12)
+      .padding(.vertical, 7)
     }
-    .buttonStyle(.plain)
+    .background(.ultraThinMaterial)
+    .overlay(alignment: .top) { Divider() }
+    .accessibilityElement(children: .contain)
+  }
+}
+
+private struct PlayerBarInset: ViewModifier {
+  let model: AppModel
+
+  func body(content: Content) -> some View {
+    content.safeAreaInset(edge: .bottom, spacing: 0) {
+      if model.playback.item != nil {
+        MiniPlayerView(model: model)
+      }
+    }
+  }
+}
+
+extension View {
+  fileprivate func playerBarInset(model: AppModel) -> some View {
+    modifier(PlayerBarInset(model: model))
   }
 }
 
@@ -1659,6 +1851,11 @@ private struct PlayerView: View {
   @Environment(\.dismiss) private var dismiss
   @State private var seekValue = 0.0
   @State private var isSleepTimerPresented = false
+
+  private var episode: StoredEpisode? {
+    guard let episodeKey = model.playback.item?.episodeKey else { return nil }
+    return model.episodes.first { $0.episodeKey == episodeKey }
+  }
 
   var body: some View {
     NavigationStack {
@@ -1672,11 +1869,14 @@ private struct PlayerView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .padding(.horizontal)
         } else {
-          Image(systemName: "waveform.circle.fill")
-            .resizable()
-            .scaledToFit()
-            .frame(width: 180, height: 180)
-            .foregroundStyle(.tint)
+          PodcastArtwork(
+            url: episode?.artworkURL,
+            title: model.playback.item?.title ?? "FennecCast",
+            cornerRadius: 24
+          )
+          .frame(maxWidth: 300)
+          .padding(.horizontal, 36)
+          .shadow(color: .black.opacity(0.12), radius: 14, y: 8)
         }
         VStack(spacing: 8) {
           Text(model.playback.item?.title ?? "")
@@ -1798,25 +1998,101 @@ private struct FeedRow: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      AsyncImage(url: feed.metadata.imageURL) { image in
-        image.resizable().scaledToFill()
-      } placeholder: {
-        Image(systemName: "dot.radiowaves.left.and.right")
-          .foregroundStyle(.secondary)
-      }
-      .frame(width: 48, height: 48)
-      .clipShape(RoundedRectangle(cornerRadius: 8))
+      PodcastArtwork(url: feed.metadata.imageURL, title: feed.title, cornerRadius: 10)
+        .frame(width: 56, height: 56)
       VStack(alignment: .leading, spacing: 4) {
         Text(feed.title)
           .font(.headline)
           .lineLimit(2)
         if let author = feed.metadata.author {
           Text(author)
-            .font(.caption)
+            .font(.subheadline)
             .foregroundStyle(.secondary)
+            .lineLimit(1)
         }
       }
     }
+    .padding(.vertical, 3)
+    .accessibilityElement(children: .combine)
+  }
+}
+
+private struct FeedHero: View {
+  let feed: StoredFeed
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 16) {
+      HStack(alignment: .top, spacing: 16) {
+        PodcastArtwork(url: feed.metadata.imageURL, title: feed.title, cornerRadius: 18)
+          .frame(width: 112, height: 112)
+        VStack(alignment: .leading, spacing: 7) {
+          Text(feed.title)
+            .font(.title3.bold())
+            .fixedSize(horizontal: false, vertical: true)
+          if let author = feed.metadata.author, !author.isEmpty {
+            Text(author)
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+          }
+          if let refresh = feed.lastRefreshAtMilliseconds {
+            Label {
+              Text(Date(timeIntervalSince1970: Double(refresh) / 1_000), style: .relative)
+            } icon: {
+              Image(systemName: "arrow.clockwise")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          }
+        }
+      }
+      if let summary = feed.metadata.summaryHTML, !summary.isEmpty {
+        FeedMarkupText(html: summary)
+          .foregroundStyle(.secondary)
+      }
+    }
+    .padding(.vertical, 6)
+    .accessibilityElement(children: .contain)
+  }
+}
+
+private struct SubscriptionGridCell: View {
+  let feed: StoredFeed
+  let episodeCount: Int
+  let compact: Bool
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: compact ? 6 : 10) {
+      PodcastArtwork(
+        url: feed.metadata.imageURL,
+        title: feed.title,
+        cornerRadius: compact ? 10 : 14
+      )
+      .overlay(alignment: .bottomTrailing) {
+        if episodeCount > 0 {
+          Text(episodeCount, format: .number)
+            .font(.caption2.bold())
+            .foregroundStyle(.white)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(.black.opacity(0.68), in: Capsule())
+            .padding(6)
+            .accessibilityLabel("\(episodeCount)")
+        }
+      }
+      Text(feed.title)
+        .font(compact ? .caption.weight(.semibold) : .subheadline.weight(.semibold))
+        .foregroundStyle(.primary)
+        .lineLimit(compact ? 1 : 2)
+      if !compact, let author = feed.metadata.author, !author.isEmpty {
+        Text(author)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .contentShape(Rectangle())
+    .accessibilityElement(children: .combine)
   }
 }
 

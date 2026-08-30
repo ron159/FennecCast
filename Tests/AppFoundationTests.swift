@@ -127,4 +127,45 @@ final class AppFoundationTests: XCTestCase {
     XCTAssertTrue(localizations.contains("en"))
     XCTAssertTrue(localizations.contains("zh-Hans"))
   }
+
+  func testSubscriptionLayoutRestoresSafePersistentValues() {
+    XCTAssertEqual(SubscriptionLayout.restored(from: nil), .artworkGrid)
+    XCTAssertEqual(SubscriptionLayout.restored(from: "list"), .list)
+    XCTAssertEqual(SubscriptionLayout.restored(from: "compactGrid"), .compactGrid)
+    XCTAssertEqual(SubscriptionLayout.restored(from: "future-value"), .artworkGrid)
+  }
+
+  func testFeedMarkupPreservesReadableStructureAndRemovesActiveContent() {
+    let html = """
+      <p>First line<br>Second &amp; line</p>
+      <p><strong>Next paragraph</strong></p>
+      <script>alert('hidden')</script>
+      <img src="https://tracking.example/pixel.png">
+      """
+
+    let text = FeedMarkup.plainText(from: html)
+
+    XCTAssertTrue(text.contains("First line\nSecond & line"))
+    XCTAssertTrue(text.contains("Second & line\n\nNext paragraph"))
+    XCTAssertFalse(text.contains("hidden"))
+    XCTAssertFalse(text.contains("tracking.example"))
+  }
+
+  func testFeedMarkupFallsBackForMalformedMarkup() {
+    let text = FeedMarkup.plainText(from: "One<br>Two <broken Three")
+
+    XCTAssertTrue(text.contains("One\nTwo"))
+    XCTAssertTrue(text.contains("Three"))
+  }
+
+  func testFeedMarkupRemovesLinksAndPublisherStyling() {
+    let html = """
+      <a href="https://example.com" style="font-size: 80px" onclick="alert(1)">Read more</a>
+      """
+
+    let attributed = FeedMarkup.attributedString(from: html)
+
+    XCTAssertEqual(String(attributed.characters), "Read more")
+    XCTAssertTrue(attributed.runs.allSatisfy { $0.link == nil })
+  }
 }

@@ -637,29 +637,34 @@ private struct AdvancedEpisodeSummary: View {
   let episode: StoredEpisode
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 5) {
-      Text(episode.title)
-        .font(.headline)
-        .lineLimit(2)
-      HStack(spacing: 8) {
-        Text(episode.feedTitle)
-          .lineLimit(1)
-        if episode.played {
-          Image(systemName: "checkmark.circle.fill")
-        } else if episode.positionMilliseconds > 0 {
-          Image(systemName: "circle.lefthalf.filled")
+    HStack(spacing: 12) {
+      PodcastArtwork(url: episode.artworkURL, title: episode.title, cornerRadius: 10)
+        .frame(width: 64, height: 64)
+      VStack(alignment: .leading, spacing: 5) {
+        Text(episode.title)
+          .font(.headline)
+          .lineLimit(2)
+        HStack(spacing: 8) {
+          Text(episode.feedTitle)
+            .lineLimit(1)
+          if episode.played {
+            Image(systemName: "checkmark.circle.fill")
+          } else if episode.positionMilliseconds > 0 {
+            Image(systemName: "circle.lefthalf.filled")
+          }
+          if episode.favorite {
+            Image(systemName: "star.fill")
+          }
+          if episode.archived {
+            Image(systemName: "archivebox.fill")
+          }
         }
-        if episode.favorite {
-          Image(systemName: "star.fill")
-        }
-        if episode.archived {
-          Image(systemName: "archivebox.fill")
-        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
       }
-      .font(.caption)
-      .foregroundStyle(.secondary)
     }
     .padding(.vertical, 3)
+    .accessibilityElement(children: .combine)
   }
 }
 
