@@ -9,6 +9,7 @@ import PlaybackFeature
 import QueueFeature
 import StateSyncFeature
 import SwiftUI
+import TranscriptionFeature
 import UniformTypeIdentifiers
 
 @MainActor
@@ -45,6 +46,16 @@ final class AppModel {
   var syncTokenConfigured = false
   var transcripts: [EpisodeKey: EpisodeTranscript] = [:]
   var loadingTranscriptKeys = Set<EpisodeKey>()
+  var transcriptionSettings = TranscriptionSettings()
+  var transcriptionModelStates: [TranscriptionModelState] = []
+  var transcriptionAPIKey = ""
+  var transcriptionAPIKeyConfigured = false
+  var downloadingTranscriptionModels = Set<String>()
+  var transcriptionDownloadProgress: [String: Double] = [:]
+  var transcribingEpisodeKeys = Set<EpisodeKey>()
+  var transcriptSummaries: [EpisodeKey: String] = [:]
+  var transcriptTranslations: [EpisodeKey: String] = [:]
+  var generatedTranscriptKeys = Set<EpisodeKey>()
 
   private let supplementalContentClient = SupplementalContentClient()
 
@@ -70,6 +81,7 @@ final class AppModel {
 
   func start() async {
     loadSyncSettings()
+    await reloadTranscriptionSettings()
     await reloadAll()
     await loadDebugPlaybackIfRequested()
     _ = await environment.podcastAutomationService?.runMaintenance()
@@ -571,19 +583,158 @@ final class AppModel {
   func loadTranscript(for episode: StoredEpisode) async {
     guard
       transcripts[episode.episodeKey] == nil,
-      !loadingTranscriptKeys.contains(episode.episodeKey),
-      let url = episode.metadata.transcriptURL
+      !loadingTranscriptKeys.contains(episode.episodeKey)
     else { return }
     loadingTranscriptKeys.insert(episode.episodeKey)
     defer { loadingTranscriptKeys.remove(episode.episodeKey) }
     do {
-      transcripts[episode.episodeKey] = try await supplementalContentClient.transcript(
-        from: url,
-        declaredType: episode.metadata.transcriptType
+      let generated = try await environment.transcriptionCoordinator?.generatedTranscript(
+        for: episode.episodeKey
       )
+      if generated != nil {
+        generatedTranscriptKeys.insert(episode.episodeKey)
+      }
+      if let url = episode.metadata.transcriptURL {
+        transcripts[episode.episodeKey] = try await supplementalContentClient.transcript(
+          from: url,
+          declaredType: episode.metadata.transcriptType
+        )
+      } else {
+        transcripts[episode.episodeKey] = generated
+      }
+      await loadStoredAIResults(for: episode.episodeKey)
+    } catch {
+      if let coordinator = environment.transcriptionCoordinator,
+        let generated = try? await coordinator.generatedTranscript(for: episode.episodeKey)
+      {
+        transcripts[episode.episodeKey] = generated
+        await loadStoredAIResults(for: episode.episodeKey)
+      } else {
+        present(error)
+      }
+    }
+  }
+
+  func reloadTranscriptionSettings() async {
+    guard let coordinator = environment.transcriptionCoordinator else { return }
+    transcriptionSettings = await coordinator.settings()
+    transcriptionModelStates = await coordinator.modelStates()
+    transcriptionAPIKeyConfigured = await coordinator.apiKeyConfigured()
+  }
+
+  func saveTranscriptionSettings() async {
+    guard let coordinator = environment.transcriptionCoordinator else { return }
+    do {
+      try await coordinator.saveSettings(transcriptionSettings)
+      if !transcriptionAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        try await coordinator.saveAPIKey(transcriptionAPIKey)
+        transcriptionAPIKey = ""
+      }
+      transcriptionAPIKeyConfigured = await coordinator.apiKeyConfigured()
     } catch {
       present(error)
     }
+  }
+
+  func clearTranscriptionAPIKey() async {
+    guard let coordinator = environment.transcriptionCoordinator else { return }
+    await coordinator.clearAPIKey()
+    transcriptionAPIKey = ""
+    transcriptionAPIKeyConfigured = false
+  }
+
+  func downloadTranscriptionModel(_ state: TranscriptionModelState) async {
+    guard let coordinator = environment.transcriptionCoordinator else { return }
+    let id = state.model.id
+    downloadingTranscriptionModels.insert(id)
+    transcriptionDownloadProgress[id] = 0
+    defer {
+      downloadingTranscriptionModels.remove(id)
+      transcriptionDownloadProgress.removeValue(forKey: id)
+    }
+    do {
+      try await coordinator.downloadModel(state.model) { progress in
+        Task { @MainActor in
+          self.transcriptionDownloadProgress[id] = progress
+        }
+      }
+      transcriptionModelStates = await coordinator.modelStates()
+    } catch {
+      present(error)
+    }
+  }
+
+  func deleteTranscriptionModel(_ state: TranscriptionModelState) async {
+    guard let coordinator = environment.transcriptionCoordinator else { return }
+    do {
+      try await coordinator.deleteModel(state.model)
+      transcriptionModelStates = await coordinator.modelStates()
+    } catch {
+      present(error)
+    }
+  }
+
+  func transcribe(_ episode: StoredEpisode, replace: Bool) async {
+    guard let coordinator = environment.transcriptionCoordinator else { return }
+    let key = episode.episodeKey
+    guard transcribingEpisodeKeys.insert(key).inserted else { return }
+    defer { transcribingEpisodeKeys.remove(key) }
+    do {
+      let generated = try await coordinator.transcribe(key, replace: replace)
+      generatedTranscriptKeys.insert(key)
+      if episode.metadata.transcriptURL == nil {
+        transcripts[key] = generated
+      } else if transcripts[key] == nil {
+        await loadTranscript(for: episode)
+      }
+      await loadStoredAIResults(for: key)
+    } catch {
+      present(error)
+    }
+  }
+
+  func generateTranscriptAI(
+    action: TranscriptAIAction,
+    for episode: StoredEpisode
+  ) async {
+    guard
+      let coordinator = environment.transcriptionCoordinator,
+      let transcript = transcripts[episode.episodeKey]
+    else { return }
+    do {
+      let value = try await coordinator.generateAI(
+        action: action,
+        transcript: transcript,
+        for: episode.episodeKey
+      )
+      switch action {
+      case .summary:
+        transcriptSummaries[episode.episodeKey] = value
+      case .translation:
+        transcriptTranslations[episode.episodeKey] = value
+      }
+    } catch {
+      present(error)
+    }
+  }
+
+  func seek(to milliseconds: Int64, in episode: StoredEpisode) async {
+    guard let engine = environment.playbackEngine else { return }
+    await performVoid {
+      if playback.item?.episodeKey != episode.episodeKey {
+        try await engine.load(episode.episodeKey, autoplay: true)
+      }
+      try await engine.seek(toMilliseconds: milliseconds)
+    }
+  }
+
+  private func loadStoredAIResults(for key: EpisodeKey) async {
+    guard let coordinator = environment.transcriptionCoordinator else { return }
+    transcriptSummaries[key] = try? await coordinator.aiResult(action: .summary, for: key)
+    transcriptTranslations[key] = try? await coordinator.aiResult(
+      action: .translation,
+      for: key
+    )
   }
 
   private func perform(_ operation: () async throws -> Void) async -> Bool {
@@ -1426,6 +1577,11 @@ private struct SettingsView: View {
           )
         }
       }
+      Section("transcription.settings.section") {
+        NavigationLink("transcription.settings.title") {
+          TranscriptionSettingsView(model: model)
+        }
+      }
       Section("settings.about.section") {
         LabeledContent("settings.about.app", value: model.environment.appName)
         LabeledContent(
@@ -1522,6 +1678,157 @@ private struct SettingsView: View {
       }
       databaseDocument = nil
     }
+  }
+}
+
+private struct TranscriptionSettingsView: View {
+  let model: AppModel
+
+  private var speechStates: [TranscriptionModelState] {
+    model.transcriptionModelStates.filter { $0.model.engine != .speakerDiarization }
+  }
+
+  private var speakerState: TranscriptionModelState? {
+    model.transcriptionModelStates.first { $0.model.engine == .speakerDiarization }
+  }
+
+  var body: some View {
+    @Bindable var model = model
+    Form {
+      Section {
+        Picker(
+          "transcription.settings.model",
+          selection: $model.transcriptionSettings.selectedModelID
+        ) {
+          ForEach(speechStates, id: \.model.id) { state in
+            Text(state.model.name).tag(state.model.id)
+          }
+        }
+        ForEach(speechStates, id: \.model.id) { state in
+          TranscriptionModelRow(model: model, state: state)
+        }
+      } header: {
+        Text("transcription.models.section")
+      } footer: {
+        Text("transcription.models.footer")
+      }
+
+      Section {
+        Toggle(
+          "transcription.autoAfterDownload",
+          isOn: $model.transcriptionSettings.transcribeAfterDownload
+        )
+        Toggle(
+          "transcription.speakerLabels",
+          isOn: $model.transcriptionSettings.speakerLabelsEnabled
+        )
+        if let speakerState {
+          TranscriptionModelRow(model: model, state: speakerState)
+        }
+      } footer: {
+        Text("transcription.automation.footer")
+      }
+
+      Section {
+        TextField(
+          "transcription.api.baseURL",
+          text: $model.transcriptionSettings.apiBaseURL
+        )
+        .textInputAutocapitalization(.never)
+        .keyboardType(.URL)
+        .autocorrectionDisabled()
+        TextField(
+          "transcription.api.model",
+          text: $model.transcriptionSettings.apiModel
+        )
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
+        TextField(
+          "transcription.api.translationTarget",
+          text: $model.transcriptionSettings.translationTarget
+        )
+        SecureField("transcription.api.key", text: $model.transcriptionAPIKey)
+          .textInputAutocapitalization(.never)
+          .autocorrectionDisabled()
+        if model.transcriptionAPIKeyConfigured {
+          Label("transcription.api.keyStored", systemImage: "key.fill")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          Button("transcription.api.clearKey", role: .destructive) {
+            Task { await model.clearTranscriptionAPIKey() }
+          }
+        }
+      } header: {
+        Text("transcription.api.section")
+      } footer: {
+        Text("transcription.api.footer")
+      }
+
+      Section {
+        Button("common.save") {
+          Task { await model.saveTranscriptionSettings() }
+        }
+      }
+    }
+    .contentMargins(
+      .bottom,
+      PlayerBarLayout.settingsScrollClearance(hasPlayer: model.playback.item != nil),
+      for: .scrollContent
+    )
+    .navigationTitle("transcription.settings.title")
+    .navigationBarTitleDisplayMode(.inline)
+    .task { await model.reloadTranscriptionSettings() }
+  }
+}
+
+private struct TranscriptionModelRow: View {
+  let model: AppModel
+  let state: TranscriptionModelState
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 7) {
+      HStack {
+        VStack(alignment: .leading, spacing: 3) {
+          Text(state.model.name)
+            .font(.subheadline.weight(.semibold))
+          Text(modelMetadata)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        Spacer()
+        if state.isInstalled {
+          Label("transcription.model.installed", systemImage: "checkmark.circle.fill")
+            .labelStyle(.iconOnly)
+            .foregroundStyle(.green)
+        }
+      }
+      if model.downloadingTranscriptionModels.contains(state.model.id) {
+        ProgressView(value: model.transcriptionDownloadProgress[state.model.id] ?? 0)
+      } else if state.isInstalled {
+        Button("transcription.model.delete", role: .destructive) {
+          Task { await model.deleteTranscriptionModel(state) }
+        }
+        .font(.caption)
+      } else {
+        Button("transcription.model.download") {
+          Task { await model.downloadTranscriptionModel(state) }
+        }
+        .font(.caption)
+      }
+    }
+    .padding(.vertical, 3)
+  }
+
+  private var modelMetadata: String {
+    let size = ByteCountFormatter.string(
+      fromByteCount: state.model.downloadByteCount,
+      countStyle: .file
+    )
+    return String(
+      format: String(localized: "transcription.model.metadata"),
+      size,
+      state.model.estimatedMemoryMB
+    )
   }
 }
 
@@ -1699,6 +2006,10 @@ struct EpisodeDetailView: View {
   let model: AppModel
   let episode: StoredEpisode
 
+  private var hasDownloadedMedia: Bool {
+    model.downloadByEpisodeKey[episode.episodeKey]?.state == .completed
+  }
+
   var body: some View {
     List {
       Section {
@@ -1787,11 +2098,38 @@ struct EpisodeDetailView: View {
           FeedMarkupText(html: summary)
         }
       }
-      if episode.metadata.transcriptURL != nil {
+      if episode.metadata.transcriptURL != nil || hasDownloadedMedia
+        || model.transcripts[episode.episodeKey] != nil
+      {
         Section("episode.transcript") {
           if let transcript = model.transcripts[episode.episodeKey] {
-            Text(transcript.plainText)
-              .textSelection(.enabled)
+            if transcript.cues.isEmpty {
+              Text(transcript.plainText)
+                .textSelection(.enabled)
+            } else {
+              ForEach(Array(transcript.cues.enumerated()), id: \.offset) { _, cue in
+                Button {
+                  Task { await model.seek(to: cue.startMilliseconds, in: episode) }
+                } label: {
+                  HStack(alignment: .top, spacing: 10) {
+                    Text(formatDuration(cue.startMilliseconds))
+                      .font(.caption.monospacedDigit())
+                      .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 3) {
+                      if let speaker = cue.speaker {
+                        Text(speaker)
+                          .font(.caption.weight(.semibold))
+                          .foregroundStyle(.secondary)
+                      }
+                      Text(cue.text)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.leading)
+                    }
+                  }
+                }
+                .buttonStyle(.plain)
+              }
+            }
           } else if model.loadingTranscriptKeys.contains(episode.episodeKey) {
             ProgressView()
               .frame(maxWidth: .infinity, alignment: .center)
@@ -1800,6 +2138,46 @@ struct EpisodeDetailView: View {
               Task { await model.loadTranscript(for: episode) }
             }
           }
+          if hasDownloadedMedia {
+            Button(
+              model.generatedTranscriptKeys.contains(episode.episodeKey)
+                ? "transcription.action.retranscribe" : "transcription.action.transcribe"
+            ) {
+              Task {
+                await model.transcribe(
+                  episode,
+                  replace: model.generatedTranscriptKeys.contains(episode.episodeKey)
+                )
+              }
+            }
+            .disabled(model.transcribingEpisodeKeys.contains(episode.episodeKey))
+          }
+          if model.transcribingEpisodeKeys.contains(episode.episodeKey) {
+            HStack {
+              ProgressView()
+              Text("transcription.status.running")
+            }
+          }
+          if model.transcripts[episode.episodeKey] != nil {
+            Button("transcription.action.summary") {
+              Task { await model.generateTranscriptAI(action: .summary, for: episode) }
+            }
+            .disabled(!model.transcriptionAPIKeyConfigured)
+            Button("transcription.action.translate") {
+              Task { await model.generateTranscriptAI(action: .translation, for: episode) }
+            }
+            .disabled(!model.transcriptionAPIKeyConfigured)
+          }
+        }
+      }
+      if let summary = model.transcriptSummaries[episode.episodeKey] {
+        Section("transcription.result.summary") {
+          Text(summary).textSelection(.enabled)
+        }
+      }
+      if let translation = model.transcriptTranslations[episode.episodeKey] {
+        Section("transcription.result.translation") {
+          Text(translation).textSelection(.enabled)
         }
       }
     }

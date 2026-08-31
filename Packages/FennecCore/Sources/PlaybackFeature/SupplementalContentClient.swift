@@ -28,9 +28,16 @@ public struct TranscriptCue: Equatable, Sendable {
   public let startMilliseconds: Int64
   public let endMilliseconds: Int64?
   public let text: String
+  public let speaker: String?
 
-  public init(startMilliseconds: Int64, endMilliseconds: Int64?, text: String) throws {
+  public init(
+    startMilliseconds: Int64,
+    endMilliseconds: Int64?,
+    text: String,
+    speaker: String? = nil
+  ) throws {
     let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    let normalizedSpeaker = speaker?.trimmingCharacters(in: .whitespacesAndNewlines)
     guard
       startMilliseconds >= 0,
       endMilliseconds.map({ $0 >= startMilliseconds }) ?? true,
@@ -41,6 +48,7 @@ public struct TranscriptCue: Equatable, Sendable {
     self.startMilliseconds = startMilliseconds
     self.endMilliseconds = endMilliseconds
     self.text = normalized
+    self.speaker = normalizedSpeaker?.isEmpty == false ? normalizedSpeaker : nil
   }
 }
 
@@ -302,7 +310,8 @@ public struct SupplementalContentClient: Sendable {
           try TranscriptCue(
             startMilliseconds: Int64((segment.startTime * 1_000).rounded()),
             endMilliseconds: segment.endTime.map { Int64(($0 * 1_000).rounded()) },
-            text: text
+            text: text,
+            speaker: segment.speaker
           )
         )
       } catch {
@@ -390,4 +399,5 @@ private struct TranscriptSegment: Decodable {
   let endTime: Double?
   let body: String?
   let text: String?
+  let speaker: String?
 }

@@ -15,6 +15,7 @@ let package = Package(
     .library(name: "QueueFeature", targets: ["QueueFeature"]),
     .library(name: "PlaybackFeature", targets: ["PlaybackFeature"]),
     .library(name: "DownloadsFeature", targets: ["DownloadsFeature"]),
+    .library(name: "TranscriptionFeature", targets: ["TranscriptionFeature"]),
     .library(name: "StateSyncFeature", targets: ["StateSyncFeature"]),
     .library(name: "ImportExportFeature", targets: ["ImportExportFeature"]),
   ],
@@ -22,6 +23,10 @@ let package = Package(
     .package(
       url: "https://github.com/groue/GRDB.swift.git",
       exact: "7.11.1"
+    ),
+    .package(
+      url: "https://github.com/k2-fsa/sherpa-onnx.git",
+      exact: "1.13.6"
     )
   ],
   targets: [
@@ -49,6 +54,19 @@ let package = Package(
     .target(
       name: "DownloadsFeature",
       dependencies: ["CoreContracts", "LocalData", "PlaybackFeature"]
+    ),
+    .target(
+      name: "TranscriptionFeature",
+      dependencies: [
+        "CoreContracts",
+        "LocalData",
+        "PlaybackFeature",
+        .product(name: "sherpa-onnx", package: "sherpa-onnx"),
+      ],
+      linkerSettings: [
+        .linkedFramework("AVFoundation"),
+        .linkedFramework("Security"),
+      ]
     ),
     .target(
       name: "StateSyncFeature",
@@ -97,6 +115,10 @@ let package = Package(
         "LocalData",
         "PlaybackFeature",
       ]
+    ),
+    .testTarget(
+      name: "TranscriptionFeatureTests",
+      dependencies: ["CoreContracts", "PlaybackFeature", "TranscriptionFeature"]
     ),
     .testTarget(
       name: "StateSyncFeatureTests",

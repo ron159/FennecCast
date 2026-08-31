@@ -26,6 +26,7 @@
 		A10000000000000000000011 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* CarPlaySceneDelegate.swift */; };
 		A10000000000000000000012 /* SleepTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* SleepTimerView.swift */; };
 		A10000000000000000000013 /* PodcastUIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000014 /* PodcastUIComponents.swift */; };
+		A10000000000000000000014 /* TranscriptionFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AA000000000000000000000A /* TranscriptionFeature */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -68,6 +69,7 @@
 				A1000000000000000000000C /* DownloadsFeature in Frameworks */,
 				A1000000000000000000000D /* StateSyncFeature in Frameworks */,
 				A1000000000000000000000E /* ImportExportFeature in Frameworks */,
+				A10000000000000000000014 /* TranscriptionFeature in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -166,6 +168,7 @@
 				AA0000000000000000000007 /* DownloadsFeature */,
 				AA0000000000000000000008 /* StateSyncFeature */,
 				AA0000000000000000000009 /* ImportExportFeature */,
+				AA000000000000000000000A /* TranscriptionFeature */,
 			);
 			productName = FennecCast;
 			productReference = A20000000000000000000004 /* FennecCast.app */;
@@ -331,6 +334,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
 			productName = ImportExportFeature;
+		};
+		AA000000000000000000000A /* TranscriptionFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/FennecCore" */;
+			productName = TranscriptionFeature;
 		};
 /* End XCSwiftPackageProductDependency section */
 

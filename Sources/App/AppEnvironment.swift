@@ -8,6 +8,7 @@ import Observation
 import PlaybackFeature
 import QueueFeature
 import StateSyncFeature
+import TranscriptionFeature
 
 enum AppStartupFailure: Equatable {
   case localDatabase
@@ -37,6 +38,7 @@ final class AppEnvironment {
   let downloadManager: DownloadManager?
   let podcastAutomationService: PodcastAutomationService?
   let backgroundDownloadTransport: BackgroundDownloadTransport?
+  let transcriptionCoordinator: TranscriptionCoordinator?
   let databaseURL: URL?
   let databaseRestoreStartupResult: DatabaseRestoreStartupResult?
   let startupFailure: AppStartupFailure?
@@ -56,6 +58,7 @@ final class AppEnvironment {
     downloadManager: DownloadManager? = nil,
     podcastAutomationService: PodcastAutomationService? = nil,
     backgroundDownloadTransport: BackgroundDownloadTransport? = nil,
+    transcriptionCoordinator: TranscriptionCoordinator? = nil,
     databaseURL: URL? = nil,
     databaseRestoreStartupResult: DatabaseRestoreStartupResult? = nil,
     startupFailure: AppStartupFailure? = nil
@@ -74,6 +77,7 @@ final class AppEnvironment {
     self.downloadManager = downloadManager
     self.podcastAutomationService = podcastAutomationService
     self.backgroundDownloadTransport = backgroundDownloadTransport
+    self.transcriptionCoordinator = transcriptionCoordinator
     self.databaseURL = databaseURL
     self.databaseRestoreStartupResult = databaseRestoreStartupResult
     self.startupFailure = startupFailure
@@ -142,10 +146,17 @@ final class AppEnvironment {
       let backgroundDownloadTransport = BackgroundDownloadTransport(
         storageRoot: storageRoot
       )
+      let transcriptionCoordinator = TranscriptionCoordinator(
+        store: store,
+        storageRoot: storageRoot
+      )
       let downloadManager = DownloadManager(
         store: store,
         transport: backgroundDownloadTransport,
-        storageRoot: storageRoot
+        storageRoot: storageRoot,
+        downloadDidComplete: { episodeKey in
+          await transcriptionCoordinator.handleDownloadCompleted(episodeKey)
+        }
       )
       let podcastAutomationService = PodcastAutomationService(
         store: store,
@@ -180,6 +191,7 @@ final class AppEnvironment {
         downloadManager: downloadManager,
         podcastAutomationService: podcastAutomationService,
         backgroundDownloadTransport: backgroundDownloadTransport,
+        transcriptionCoordinator: transcriptionCoordinator,
         databaseURL: databaseURL,
         databaseRestoreStartupResult: databaseRestoreStartupResult
       )

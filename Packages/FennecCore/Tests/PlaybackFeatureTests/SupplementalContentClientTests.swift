@@ -62,6 +62,31 @@ struct SupplementalContentClientTests {
   }
 
   @Test
+  func loadsSpeakerLabelsFromJSONTranscript() async throws {
+    let url = try #require(URL(string: "https://cdn.example.com/transcript.json"))
+    let loader = StubSupplementalLoader(
+      result: try response(
+        url: url,
+        mimeType: "application/json",
+        data: Data(
+          """
+          {"segments":[
+            {"startTime":1.0,"endTime":2.5,"body":"Hello","speaker":"Speaker 1"}
+          ]}
+          """.utf8
+        )
+      )
+    )
+
+    let transcript = try await SupplementalContentClient(loader: loader).transcript(
+      from: url,
+      declaredType: "application/json"
+    )
+
+    #expect(transcript.cues.first?.speaker == "Speaker 1")
+  }
+
+  @Test
   func rejectsInvalidStatusSizeFormatAndMalformedContent() async throws {
     let url = try #require(URL(string: "https://cdn.example.com/content"))
     let oversized = SupplementalContentClient(

@@ -58,6 +58,15 @@ enum SubscriptionLayout: String, CaseIterable, Identifiable {
   }
 }
 
+enum PlayerBarLayout {
+  static let minimumHeight: CGFloat = 60
+  private static let settingsSpacing: CGFloat = 16
+
+  static func settingsScrollClearance(hasPlayer: Bool) -> CGFloat {
+    hasPlayer ? minimumHeight + settingsSpacing : 0
+  }
+}
+
 enum FeedMarkup {
   static let maximumCharacterCount = 200_000
 

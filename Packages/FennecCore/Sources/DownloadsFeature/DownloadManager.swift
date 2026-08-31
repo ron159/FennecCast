@@ -7,6 +7,7 @@ public actor DownloadManager {
   private let transport: any DownloadTransporting
   private let fileStore: LocalMediaFileStore
   private let timeMilliseconds: @Sendable () -> Int64
+  private let downloadDidComplete: @Sendable (EpisodeKey) async -> Void
 
   private var isConnected = false
   private var episodeByTaskIdentifier: [Int: EpisodeKey] = [:]
@@ -15,6 +16,7 @@ public actor DownloadManager {
     store: LocalDataStore,
     transport: any DownloadTransporting,
     storageRoot: URL,
+    downloadDidComplete: @escaping @Sendable (EpisodeKey) async -> Void = { _ in },
     timeMilliseconds: @escaping @Sendable () -> Int64 = {
       Int64((Date().timeIntervalSince1970 * 1_000).rounded())
     }
@@ -22,6 +24,7 @@ public actor DownloadManager {
     self.store = store
     self.transport = transport
     self.fileStore = LocalMediaFileStore(storageRoot: storageRoot)
+    self.downloadDidComplete = downloadDidComplete
     self.timeMilliseconds = timeMilliseconds
   }
 
@@ -366,6 +369,7 @@ public actor DownloadManager {
         )
       )
       episodeByTaskIdentifier.removeValue(forKey: taskIdentifier)
+      Task { await downloadDidComplete(episodeKey) }
     } catch let error as LocalMediaFileError {
       fileStore.removeStagedFileIfOwned(stagedFileURL)
       let code: DownloadErrorCode = error == .invalidFile ? .invalidResponse : .fileSystem
